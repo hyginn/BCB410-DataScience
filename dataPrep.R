@@ -19,25 +19,40 @@
 #    <list ...>
 #
 # ==============================================================================
- 
+
 #TOC> ==========================================================================
-#TOC> 
+#TOC>
 #TOC>   Section  Title                                          Line
 #TOC> --------------------------------------------------------------
-#TOC>   1        Download GEO expression data from NCBI           40
-#TOC>   2        Download GO and GOA from Gene ontology          137
-#TOC>   2.1      Gene ontology (GO):                             140
-#TOC>   2.2      Gene Ontology annotations (GOA)                 194
-#TOC>   3        Download sequences and annotations from EBI     216
-#TOC>   4        Download network data from STRING               232
-#TOC>   5        Download ID cross references from EBI           259
-#TOC> 
+#TOC>   1        Packages                                         44
+#TOC>   2        Download GEO expression data from NCBI           55
+#TOC>   3        Download GO and GOA from Gene ontology          152
+#TOC>   3.1      Gene ontology (GO):                             155
+#TOC>   3.2      Gene Ontology annotations (GOA)                 209
+#TOC>   3.3      GOSlim                                          230
+#TOC>   3.3.1    Sample GOslim import code                       257
+#TOC>   4        Download sequences and annotations from EBI     279
+#TOC>   5        Download network data from STRING               295
+#TOC>   5.1      Sample STRING import code                       322
+#TOC>   6        Download ID cross references from EBI           343
+#TOC>
 #TOC> ==========================================================================
- 
 
 
 
-# =    1  Download GEO expression data from NCBI  ==============================
+
+# =    1  Packages  ============================================================
+
+# readr is much faster and more verstile than the read.XYZ funcions of base
+# R. Caution: readr functions return tibbles.
+
+if (!require(readr, quietly = TRUE)) {
+  install.packages("readr")
+  library(readr)
+}
+
+
+# =    2  Download GEO expression data from NCBI  ==============================
 #
 
 
@@ -134,10 +149,10 @@ GSE4987 <- GSE4987[[idx]]
 # Can we/should we merge the two sets?
 
 
-# =    2  Download GO and GOA from Gene ontology  ==============================
+# =    3  Download GO and GOA from Gene ontology  ==============================
 
 
-# ==   2.1  Gene ontology (GO):  ===============================================
+# ==   3.1  Gene ontology (GO):  ===============================================
 #
 
 # Download page: http://www.geneontology.org/page/download-ontology
@@ -191,7 +206,7 @@ is_a: GO:0000030 ! mannosyltransferase activity
 
 
 
-# ==   2.2  Gene Ontology annotations (GOA)  ===================================
+# ==   3.2  Gene Ontology annotations (GOA)  ===================================
 
 # Download page: http://www.geneontology.org/page/download-annotations
 # Readme: http://geneontology.org/gene-associations/readme/sgd.README
@@ -212,8 +227,56 @@ SGD	S000007287	15S_RRNA		GO:0032543	SGD_REF:S000073641|PMID:6262728	IC	GO:000576
 SGD	S000007288	21S_RRNA		GO:0005762	SGD_REF:S000073372|PMID:6759872	IDA		C	Mitochondrial 21S rRNA	Q0158|21S_rRNA_3|21S_rRNA_4	gene	taxon:559292	20040202	SGD
 "
 
+# ==   3.3  GOSlim  ============================================================
+#
+# GOSlims are a reduced set of more general GO terms that provide a low
+# resolution, categorical overview of function. Yeast GOSlims are curated by
+# the SGD.
 
-# =    3  Download sequences and annotations from EBI  =========================
+# Info page: http://www.geneontology.org/page/go-slim-and-subset-guide
+# Data: (3 mb) https://downloads.yeastgenome.org/curation/literature/go_slim_mapping.tab
+# Note: Primary ID is yeast systematic name
+# Sample: (some lines omitted)
+"
+YAL005C	SSA1	S000000004	P	transmembrane transport	GO:0055085	ORF|Verified
+YAL007C	ERP2	S000000005	C	cytoplasm	GO:0005737	ORF|Verified
+YAL007C	ERP2	S000000005	F	molecular_function	GO:0003674	ORF|Verified
+YAL007C	ERP2	S000000005	P	Golgi vesicle transport	GO:0048193	ORF|Verified
+YAL008W	FUN14	S000000006	C	mitochondrial envelope	GO:0005740	ORF|Verified
+YAL009W	SPO7	S000000007	F	hydrolase activity	GO:0016787	ORF|Verified
+YAL009W	SPO7	S000000007	F	phosphatase activity	GO:0016791	ORF|Verified
+"
+colNames <- c("ID",
+              "name",
+              "SGDId",
+              "Ontology",
+              "termName",
+              "termID",
+              "status")
+
+# ===  3.3.1  Sample GOslim import code
+
+myGsl <- read_tsv("./data/go_slim_mapping.tab",
+                  col_names = c("ID",
+                                "name",
+                                "SGDId",
+                                "Ontology",
+                                "termName",
+                                "termID",
+                                "status"))
+
+head(myGsl)
+myGslTermNames <- unique(myGsl$termName)  # 169 unique terms
+myGslTermNames[grep("cycle", myGslTermNames)]  # find terms containing "cycle"
+# [1] "regulation of cell cycle"  "mitotic cell cycle"  "meiotic cell cycle"
+
+# Subset IDs that have "mitotic cell cycle" annotation
+sel <- myGsl$termName == "mitotic cell cycle"
+myCCgenes <- unique(myGsl$ID[sel])
+
+
+
+# =    4  Download sequences and annotations from EBI  =========================
 
 # Check http://www.uniprot.org/uniprot/P39678 to see what information is
 #    available in principle
@@ -229,7 +292,7 @@ SGD	S000007288	21S_RRNA		GO:0005762	SGD_REF:S000073372|PMID:6759872	IDA		C	Mitoc
 #
 
 
-# =    4  Download network data from STRING  ===================================
+# =    5  Download network data from STRING  ===================================
 #
 # Download page: https://string-db.org/cgi/download.pl?species_text=Saccharomyces+cerevisiae
 # Data: (20.8 mb) https://string-db.org/download/protein.links.full.v10.5/4932.protein.links.full.v10.5.txt.gz
@@ -256,7 +319,28 @@ protein1 protein2 neighborhood neighborhood_transferred fusion cooccurence homol
 4932.YAL005C 4932.YMR214W 0 321 0 403 0 0 409 41 668 0 517 349 295 977
 "
 
-# =    5  Download ID cross references from EBI  ===============================
+# ==   5.1  Sample STRING import code  =========================================
+
+# Read STRING Data (needs to be downloaded from database, see URL in Notes)
+STR <- read_delim("./data/4932.protein.links.full.v10.5.txt", delim = " ")
+
+# Subset only IDs and combined_score column
+STR <- STR[ , c("protein1", "protein2", "combined_score")]
+
+# subset for approx. 100,000 highest confidence edges
+STR <- STR[(STR$combined_score > 909), ]
+
+# IDs are formatted like 4932.YAL005C ... drop the "4932." prefix
+STR$protein1 <- gsub("^4932\\.", "", STR$protein1)
+STR$protein2 <- gsub("^4932\\.", "", STR$protein2)
+head(STR)
+
+# Note: symmetric edges are stored twice in this data!
+
+
+
+
+# =    6  Download ID cross references from EBI  ===============================
 
 # Download page: http://www.uniprot.org/downloads
 # Readme: ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/idmapping/README
@@ -268,6 +352,59 @@ Q12089	AEP3_YEAST	856102	NP_015320.1	74676520; 965088; 51012769		GO:0019898; GO:
 P39678	MBP1_YEAST	851503	NP_010227.1	1431055; 402793; 157830387	1BM8:A; 1L3G:A; 1MB1:A	GO:0005737; GO:0030907; GO:0000790; GO:0003677; GO:0001077; GO:0071931	UniRef100_P39678	UniRef90_P39678	UniRef50_P39678	UPI000012ED37	A47528	559292			8372350; 9169867; 24374639	X74158; Z74104; U19608; BK006938	CAA52271.1; CAA98618.1; AAC49290.1				15965243; 16264235; 12564929
 "
 
+
+if (!require(readr)) {
+  install.packages("readr")
+  library(readr)
+}
+
+# read EBI ID-mapping file "YEAST_559292_idmapping_selected.tab"
+#
+
+IN <- "./data/YEAST_559292_idmapping_selected.tab"
+
+readLines(IN, n = 2)  # inspect first two lines
+
+# This is a tab-separated file that does not include column names in its first
+# row, some fields have multiple values which can be separated on a semicolon.
+# We define the column names manually, taking the information from:
+# ftp://ftp.ebi.ac.uk/pub/databases/uniprot/current_release/knowledgebase/idmapping/README
+
+myColNames <- c("UniProtAC",
+                "UniProtID",
+                "GID",
+                "RefSeq",
+                "GI",
+                "PDB",
+                "GO",
+                "UniRef100",
+                "UniRef90",
+                "UniRef50",
+                "UniParc",
+                "PIR",
+                "taxID",
+                "MIM",
+                "UniGene",
+                "PubMed",
+                "EMBL",
+                "EMBL_CDS",
+                "Ensembl",
+                "Ensembl_TRS",
+                "Ensembl_PRO",
+                "PubMed2")
+
+yeastIDs <- read_tsv(IN, col_names = myColNames)
+
+yeastIDs[1, ]
+
+str(yeastIDs)
+
+# find all genes that do not have GO annotations
+noGO <- which(is.na(yeastIDs$GO))
+nrow(yeastIDs)
+yeastIDs[["UniProtID"]][which(is.na(yeastIDs$GO))]
+
+# Next -> save as RData
 
 
 # [END]
