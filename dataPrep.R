@@ -3,7 +3,7 @@
 # Purpose:  download a variety of yeast data for subsequent preparation and
 #           crossreferencing
 #
-# Version:  0.1
+# Version:  0.2
 # Date:     2017 10 04
 # Author:   Boris Steipe (boris.steipe@utoronto.ca)
 #
@@ -13,30 +13,35 @@
 # License: GPL-3 (https://www.gnu.org/licenses/gpl-3.0.en.html)
 #
 # Version history:
+#    0.2  Added GOslims; add example for GOslim/Expression data set
 #    0.1  First draft
 #
 # ToDo:
 #    <list ...>
 #
 # ==============================================================================
-
+ 
 #TOC> ==========================================================================
-#TOC>
-#TOC>   Section  Title                                          Line
-#TOC> --------------------------------------------------------------
-#TOC>   1        Packages                                         44
-#TOC>   2        Download GEO expression data from NCBI           55
-#TOC>   3        Download GO and GOA from Gene ontology          152
-#TOC>   3.1      Gene ontology (GO):                             155
-#TOC>   3.2      Gene Ontology annotations (GOA)                 209
-#TOC>   3.3      GOSlim                                          230
-#TOC>   3.3.1    Sample GOslim import code                       257
-#TOC>   4        Download sequences and annotations from EBI     279
-#TOC>   5        Download network data from STRING               295
-#TOC>   5.1      Sample STRING import code                       322
-#TOC>   6        Download ID cross references from EBI           343
-#TOC>
+#TOC> 
+#TOC>   Section  Title                                                  Line
+#TOC> ----------------------------------------------------------------------
+#TOC>   1        Packages                                                 49
+#TOC>   2        Download GEO expression data from NCBI                   60
+#TOC>   3        Download GO and GOA from Gene ontology                  157
+#TOC>   3.1      Gene ontology (GO):                                     160
+#TOC>   3.2      Gene Ontology annotations (GOA)                         214
+#TOC>   3.3      GOSlim                                                  235
+#TOC>   3.3.1    Sample GOslim import code                               262
+#TOC>   4        Download sequences and annotations from EBI             286
+#TOC>   5        Download network data from STRING                       302
+#TOC>   5.1      Sample STRING import code                               329
+#TOC>   6        Download ID cross references from EBI                   350
+#TOC>   7        Example: selected GOslim terms plus expression data     417
+#TOC>   7.1      Read GOslims                                            425
+#TOC>   7.2      Add expression data                                     462
+#TOC> 
 #TOC> ==========================================================================
+ 
 
 
 
@@ -89,7 +94,7 @@ gset <- gset[[idx]]
 # Fallback data - in case the GEO server is not working:
 # GSE3635 <- gset
 # save(GSE3635, file="./data/GSE3635.RData")
-# load(file="./data/GSE3635.RData")     <<-
+# load(file="./data/GSE3635.RData")
 # gset <- GSE3635
 
 # This is an "Expression Set" - cf.
@@ -254,9 +259,11 @@ colNames <- c("ID",
               "termID",
               "status")
 
-# ===  3.3.1  Sample GOslim import code
+# ===  3.3.1  Sample GOslim import code                          
 
-myGsl <- read_tsv("./data/go_slim_mapping.tab",
+library(readr)
+
+scGsl <- read_tsv("./data/go_slim_mapping.tab",
                   col_names = c("ID",
                                 "name",
                                 "SGDId",
@@ -265,14 +272,14 @@ myGsl <- read_tsv("./data/go_slim_mapping.tab",
                                 "termID",
                                 "status"))
 
-head(myGsl)
-myGslTermNames <- unique(myGsl$termName)  # 169 unique terms
-myGslTermNames[grep("cycle", myGslTermNames)]  # find terms containing "cycle"
+head(scGsl)
+scGslTermNames <- unique(scGsl$termName)  # 169 unique terms
+scGslTermNames[grep("cycle", scGslTermNames)]  # find terms containing "cycle"
 # [1] "regulation of cell cycle"  "mitotic cell cycle"  "meiotic cell cycle"
 
 # Subset IDs that have "mitotic cell cycle" annotation
-sel <- myGsl$termName == "mitotic cell cycle"
-myCCgenes <- unique(myGsl$ID[sel])
+sel <- scGsl$termName == "mitotic cell cycle"
+scCCgenes <- unique(scGsl$ID[sel])
 
 
 
@@ -405,6 +412,75 @@ nrow(yeastIDs)
 yeastIDs[["UniProtID"]][which(is.na(yeastIDs$GO))]
 
 # Next -> save as RData
+
+
+# =    7  Example: selected GOslim terms plus expression data  =================
+
+
+# Construct an example dataset from  a subset of genes for GOslim terms "DNA
+# replication", "cell budding", "response to osmotic stress", and the
+# "Housekeeping" genes, ALG9, TAF10, UBC6, TFC1, and ACT1. Add expression values
+# from GSE3635.
+
+# ==   7.1  Read GOslims  ======================================================
+
+library(readr)
+
+scGsl <- read_tsv("./data/go_slim_mapping.tab",
+                  col_names = c("ID",
+                                "name",
+                                "SGDId",
+                                "Ontology",
+                                "termName",
+                                "termID",
+                                "status"))
+
+
+# Prepare ID, name, termID, termName subset for the target genes
+iD <- which(scGsl$termName == "DNA replication")
+iB <- which(scGsl$termName == "cell budding")
+iO <- which(scGsl$termName == "response to osmotic stress")
+iH <- grep("(ALG9)|(TAF10)|(UBC6)|(TFC1)|(ACT1)", scGsl$name) # "Housekeeping"
+
+# subset scGsl by selected rows
+sel <- c(iD, iB, iO, iH)
+myGOExSet <- scGsl[sel, c("ID", "name", "termName", "termID")]
+
+# relabel Housekeeping genes
+sel <- grep("(ALG9)|(TAF10)|(UBC6)|(TFC1)|(ACT1)", myGOExSet$name)
+myGOExSet$termName[sel] <- "Housekeeping"
+myGOExSet$termID[sel]   <- "000000"
+
+# remove duplicated housekeeping genes
+sel <- sel[which(duplicated(myGOExSet$ID[sel]))]
+myGOExSet <- myGOExSet[-sel, ]
+
+# remove all genes that are not unique to their annotated term
+dups <- unique(myGOExSet$ID[duplicated(myGOExSet$ID)])
+myGOExSet <- myGOExSet[! (myGOExSet$ID %in% dups), ]
+
+# ==   7.2  Add expression data  ===============================================
+load(file="./data/GSE3635.RData")
+
+# Make a dataframe with the IDs in the first column. We use these for matching.
+# Other columns are the actual expression data.
+x <- cbind(data.frame(ID = featureNames(GSE3635), stringsAsFactors = FALSE),
+           exprs(GSE3635))
+
+sel <- match(myGOExSet$ID, x$ID)  # returns the
+myGOExSet <- cbind(myGOExSet, x[sel, -1])  # ...not column 1: "ID"
+rm(x)
+rm(GSE3635)
+# Construct colnames for experiments: time in minutes (cf. sample description
+#    https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE3635 )
+colnames(myGOExSet)[5:17] <- sprintf("t%i", seq(0, 120, by = 10))
+
+# Done
+# save(myGOExSet, file = "./data/myGOExSet.RData")
+# load(file = "./data/myGOExSet.RData")
+
+
+
 
 
 # [END]
