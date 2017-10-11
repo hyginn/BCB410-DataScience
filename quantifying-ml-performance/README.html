@@ -200,30 +200,30 @@ confusionMatrix(predictions$class, y_test)</code></pre>
 ##             Reference
 ## Prediction   setosa versicolor virginica
 ##   setosa         10          0         0
-##   versicolor      0         10         2
-##   virginica       0          0         8
+##   versicolor      0         10         0
+##   virginica       0          0        10
 ## 
 ## Overall Statistics
-##                                           
-##                Accuracy : 0.9333          
-##                  95% CI : (0.7793, 0.9918)
-##     No Information Rate : 0.3333          
-##     P-Value [Acc &gt; NIR] : 8.747e-12       
-##                                           
-##                   Kappa : 0.9             
-##  Mcnemar's Test P-Value : NA              
+##                                      
+##                Accuracy : 1          
+##                  95% CI : (0.8843, 1)
+##     No Information Rate : 0.3333     
+##     P-Value [Acc &gt; NIR] : 4.857e-15  
+##                                      
+##                   Kappa : 1          
+##  Mcnemar's Test P-Value : NA         
 ## 
 ## Statistics by Class:
 ## 
 ##                      Class: setosa Class: versicolor Class: virginica
-## Sensitivity                 1.0000            1.0000           0.8000
-## Specificity                 1.0000            0.9000           1.0000
-## Pos Pred Value              1.0000            0.8333           1.0000
-## Neg Pred Value              1.0000            1.0000           0.9091
+## Sensitivity                 1.0000            1.0000           1.0000
+## Specificity                 1.0000            1.0000           1.0000
+## Pos Pred Value              1.0000            1.0000           1.0000
+## Neg Pred Value              1.0000            1.0000           1.0000
 ## Prevalence                  0.3333            0.3333           0.3333
-## Detection Rate              0.3333            0.3333           0.2667
-## Detection Prevalence        0.3333            0.4000           0.2667
-## Balanced Accuracy           1.0000            0.9500           0.9000</code></pre>
+## Detection Rate              0.3333            0.3333           0.3333
+## Detection Prevalence        0.3333            0.3333           0.3333
+## Balanced Accuracy           1.0000            1.0000           1.0000</code></pre>
 <p>This is a fast and easy approach when you have a lot of data. When the dataset is very big, splitting the data can actually yield a fairly accurate measure of the actual performance of the algorithm.</p>
 <p>But how good is the algorithm really? How <strong>confident</strong> are we that its true positive rate is 87%?</p>
 <p>Lets say we use a different random seed this time, and split the data the same way – into 2/3 train and 1/3 test – we would in fact get a different result.</p>
@@ -278,8 +278,8 @@ print(model)</code></pre>
 ## Resampling results across tuning parameters:
 ## 
 ##   usekernel  Accuracy   Kappa    
-##   FALSE      0.9533333  0.9300000
-##    TRUE      0.9577778  0.9366667
+##   FALSE      0.9488889  0.9233333
+##    TRUE      0.9555556  0.9333333
 ## 
 ## Tuning parameter 'fL' was held constant at a value of 0
 ## Tuning
@@ -315,8 +315,8 @@ print(model)</code></pre>
 ## Resampling results across tuning parameters:
 ## 
 ##   usekernel  Accuracy   Kappa    
-##   FALSE      0.9497766  0.9238486
-##    TRUE      0.9522233  0.9275282
+##   FALSE      0.9508084  0.9254953
+##    TRUE      0.9519135  0.9271734
 ## 
 ## Tuning parameter 'fL' was held constant at a value of 0
 ## Tuning
@@ -433,8 +433,9 @@ confusionMatrix(
 <li><em>Detection Prevalence</em>: Overall, how often is it wrong?</li>
 </ul>
 </div>
-<div id="precisionrecall" class="section level4">
-<h4>Precision/Recall</h4>
+<div id="precisionrecall-and-f-score" class="section level4">
+<h4>Precision/Recall and F Score</h4>
+<p>F Score is a weighted average of the true positive rate (recall) and precision.</p>
 </div>
 <div id="auc-area-under-roc-curve" class="section level4">
 <h4>AUC (Area Under ROC Curve)</h4>
@@ -548,6 +549,9 @@ print(fit)</code></pre>
 ## Tuning parameter 'intercept' was held constant at a value of TRUE</code></pre>
 <p>Notice that using <code>RMSE</code> metric gives us both RMSE and Rsquared results.</p>
 </div>
+</div>
+<div id="comparing-multiple-models" class="section level3">
+<h3>Comparing multiple models</h3>
 </div>
 </div>
 
