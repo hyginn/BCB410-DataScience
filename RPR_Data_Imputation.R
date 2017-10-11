@@ -122,7 +122,7 @@ xyplot(imputed_data, Girth~ Height + Volume, pch=2, cex = 0.5)
 fit <- with(data = imputed_data, lm(Girth ~ Height + Volume))
 summary(pool(fit))
 
-# 2.  MICE example on the small GSE4987 dataset, GSM112133
+# 2.  MICE example on the small GSE4987 dataset, GSM112133-2 (smaller set)
 # Now we will apply the same process to the GSE4987 yeast cell cycle dataset.
 GSM_data <- read.csv("~/4th/BCB410/BCB410-DataScience/data/GSM112133-2.csv", header = TRUE)
 str(GSM_data)
