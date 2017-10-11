@@ -66,7 +66,7 @@ Calculate_MI <- function(v1, v2) {
   MI = -(sum(colS)+sum(rowS))/sum(matrix);
 
   return(MI);
-}
+};
 
 # = 1.2 Example
 v1=sample(1:5, 10, replace=T);
