@@ -1,8 +1,8 @@
 ---
 title: "Model-evaluation"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -40,7 +40,7 @@ I will explain these three things in detail below.
 
 ## Required packages
 ```
-install.packages(c("mlbench", "caret", "klaR"), dependencies=TRUE)
+install.packages(c("mlbench", "caret", "plotROC", "klaR"), dependencies=TRUE)
 ```
 
 
@@ -222,7 +222,7 @@ Definition of key terms:
 - False positive (FP): predicted `a` but actual `b`
 - False negative (FN): predicted `b` but actual `a`
 
-```{r}
+```{r, echo=TRUE, message=FALSE}
 numLlvs <- 2
 confusionMatrix(
    factor(sample(rep(letters[1:numLlvs], 200), 50)),
@@ -255,26 +255,38 @@ The AUC is an error metric for binary classifiers, while the ROC is a plot that 
 The AUC is a measure of the model's ability to discriminate between two classes. An area of 1.0 represents a model predicted every test sample correctly. An area of 0.5 means the model is as a good as a fair coin.
 
 Example:
+
 ```{r}
 # load libraries
 library(caret)
-library(mlbench)
-# load the dataset
-data(PimaIndiansDiabetes)
-# prepare resampling method
-control <- trainControl(method="cv", number=5, classProbs=TRUE, summaryFunction=twoClassSummary)
-set.seed(7)
-fit <- train(diabetes~., data=PimaIndiansDiabetes, method="glm", metric="ROC", trControl=control)
-# display results
-print(fit)
+library(plotROC)
+# Load the dataset
+data("PimaIndiansDiabetes")
+control <- trainControl(method="cv", 
+                        summaryFunction=twoClassSummary, 
+                        classProbs=T,
+                        savePredictions = T)
+control <- trainControl(method="cv", number=5,
+                        classProbs=TRUE, savePredictions =TRUE,
+                        summaryFunction=twoClassSummary)
+fit <- train(diabetes~., data=PimaIndiansDiabetes, 
+             method="rf", preProc=c("center", "scale"), 
+             metric="ROC", trControl=control)
+# Select a parameter setting
+selectedIndices <- fit$pred$mtry == 2
+# Plot:
+ggplot(fit$pred[selectedIndices, ], 
+       aes(m = pos, d = factor(obs, levels = c("neg", "pos")))) +
+       geom_roc(hjust = -0.4, vjust = 1.5) + coord_equal()
 ```
+
 Here, the `ROC` should really be the `AUC`.
 
 
 #### LogLoss
 LogLoss is more prevalent for multiclass classifiers. LogLoss evaluates the probabilities produced by classifiers.
 
-```{r}
+```{r, echo=TRUE, message=FALSE}
 # load libraries
 library(caret)
 # load the dataset
@@ -326,7 +338,3 @@ print(fit)
 ```
 
 Notice that using `RMSE` metric gives us both RMSE and Rsquared results.
-
-
-### Comparing multiple models
-

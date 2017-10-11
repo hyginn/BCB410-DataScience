@@ -96,7 +96,7 @@ multiClassSummary(test_set, lev = levels(test_set$obs))
 
 # = 3.1 ROC
 # A helper library for plotting ROCs
-library(pROC)
+library(plotROC)
 
 # Lets just use the Sonar dataset
 data(Sonar)
@@ -111,8 +111,10 @@ fit <- train(Class ~ ., data=Sonar,
 # Select a parameter setting
 selectedIndices <- fit$pred$mtry == 2
 # Plot:
-plot.roc(fit$pred$obs[selectedIndices],
-         fit$pred$M[selectedIndices])
+ggplot(fit$pred[selectedIndices, ], 
+       aes(m = R, d = factor(obs, levels = c("R", "M")))) +
+       geom_roc(hjust = -0.4, vjust = 1.5) + coord_equal()
+
 
 # = 3.2 Lift Curves
 set.seed(2)
