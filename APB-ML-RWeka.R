@@ -18,7 +18,7 @@ if(!require(party, quietly = TRUE)) {
   install.packages("party")
   library(party)
 }
-# = 2 Simple example using RWeka
+# = 2 Simple examples using RWeka
 # Runnning some tests on the iris dataset. This dataset contains data on three different flowers,
 # setosa, versicolor, and virginica. Each flower has data on its sepal length, sepal width, petal
 # length, and petal width. We will be building a simple classifier using the built in J48 algorithm
@@ -40,22 +40,24 @@ plot(iris_j48)
 # Load example dataset 
 load(file = "./data/myGOExSet.RData")
 
-# sample binary classifier for YAL013W using C4.5 classifier.
+# sample binary classifier for GOSlim terms using C4.5 classifier.
 
-YAL013W_data <- myGOExSet
+data <- myGOExSet
 
 # Since multiple genes can have multiple GOSlim terms I decided to use a binary classifier to classify
 # one specific gene. This idea can be expanded to classify all 165 differen GOSlim terms. However, one problem
 # is that in the dataset there is only one row for one gene, and every other line is for genes that are not
 # "that gene".
 
-YAL013W_data$ID[YAL013W_data$ID != "YAL013W"] <- "notYAL013W"
+# Converts Strings to one-hot encoding representations
+data$termName <- as.factor(data$termName)
 
-YAL013W_data$ID <- as.factor(YAL013W_data$ID)
+# Selects the GOSlim term names, and the columns containing its associated gene expression data
+dataset <- data[, c(3,5:15)]
+GOSlim_j48 <- J48(termName ~., data = dataset)
+summary(GOSlim_j48)
 
-dataset <- YAL013W_data[, c(1,5:15)]
-YAL013W_j48 <- J48(ID ~., data = dataset)
-summary(YAL013W_j48)
+plot(GOSlim_j48)
 
 # sample binary classifier for YAL013W using Linear Regression
 # YAL013W_linear_regression <- LinearRegression(ID ~., data = dataset)
