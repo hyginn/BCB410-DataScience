@@ -1,8 +1,8 @@
 ---
 title: "APB-ML-Measuring_performance"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -29,6 +29,11 @@ summary(cars)
 
 <!-- Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. -->
 
+
+# How to use this guide
+
+Use this as a documentation for how to interpret the results from `APB-ML-Measuring_performance.R`.
+
 To evaluate machine learning algorithms, you really only need 3 things:
 
 1. The dataset (obviously)
@@ -37,12 +42,10 @@ To evaluate machine learning algorithms, you really only need 3 things:
 
 I will explain these three things in detail below.
 
-
-## Required packages
+## Requirements
 ```
-install.packages(c("mlbench", "caret", "plotROC", "klaR"), dependencies=TRUE)
+install.packages(c("mlbench", "caret", "pROC", "klaR", "MLmetrics"), dependencies=TRUE)
 ```
-
 
 ## Test options
 - **Split data** into training, test, and validation sets. Use your training set to train the model, use your validation set to fine tune the hyper-parameters, and then measure your model's predictive performance on the test set.
@@ -185,7 +188,12 @@ If we run k-fold CV with multiple runs using different ML algorithms, then each 
 
 Alright! Suppose you trained a model using k-fold cross validation with multiple runs, and you believe it can make good predictions because you got an accuracy of 90%. How do you decide whether it is a **good enough** model to **solve your problem**. Classification accuracy alone is typically not enough information to make this decision. We need better metrics that can explain the performance of a model, more importantly, discriminate among different models.
 
-Error metrics for classfication and regression models are different because they produce nominal or binary outputs and continuous outputs respectively. 
+Error metrics for classfication and regression models are different because they produce nominal or binary outputs and continuous outputs respectively.
+
+#### Note: The Difference Between Training Metrics and Evaluation Metrics
+Sometimes the metric being used by the loss function during training is different from the evaluation metric. This often happens when we are trying to use our model for a different task than it was designed for. For example, we might train a logistic regression model on for a genetic test by minimizing its Log loss, and then directly use it to predict on patients. However, what's the model's ability to identify true positives vs false negatives? How much do we care about false negatives? There should be a way to answer those questions.
+
+The better way is to train the model using the metric that suits for your problem. However, some metrics this is hard to do. For example, it's hard to directly optimize for the AUC. Always think about the right evaluation metric, and see if it's possible to use it directly to train your model. 
 
 ### Classification metrics
 
@@ -194,26 +202,41 @@ Error metrics for classfication and regression models are different because they
 
 **Kappa** (Cohen's Kappa) is essentially a measure of how well the classifier performed as compared to how well it would have performed simply by chance. This is a helpful measure for datasets that have imbalanced classes.
 
-For example lets train a GML using 5-fold CV on the PimaIndiansDiabetes dataset, which has a class breakdown of 65% POS and 35% NEG.
-```{r}
-# load libraries
-library(caret)
-library(mlbench)
-# load the dataset
-data(PimaIndiansDiabetes)
-# prepare resampling method
-control <- trainControl(method="cv", number=5)
-set.seed(7)
-fit <- train(diabetes~., data=PimaIndiansDiabetes, method="glm", metric="Accuracy", trControl=control)
-# display results
-print(fit)
-```
-
-In this example, the accuracy is only 76%, whereas Kappa is 48%, which is interesting given the baseline is 65%.
-
-
 #### Confusion Matrix (not a metric)
 A confusion matrix is an N X N matrix, where N is the number of classes being predicted. For a binary classifier, the matrix would be 2 x 2. Although this matrix is not a metric, it helps us organize and see the important results from our predictions.
+
+Example: First lets generate some data and evaluate a simple "binary classifier". We generate a dataset with skewed classes, where probability of Class1 is 10% and Class2 is 90%.
+```{r, echo=TRUE, message=FALSE}
+# Randomly sample from a PMF where Pr(Class1) = 0.2 and Pr(Class2) = 0.8
+true_class <- factor(sample(
+  paste0("Class", 1:2),
+  size = 3000,
+  prob = c(.1, .9),
+  replace = TRUE
+))
+true_class <- sort(true_class)
+# Sample from a beta distribution for the probabilities produced by a "model"
+class1_probs <- rbeta(sum(true_class == "Class1"), 4, 1)
+class2_probs <- rbeta(sum(true_class == "Class2"), 1, 2.5)
+test_set <- data.frame(obs = true_class,
+                       Class1 = c(class1_probs, class2_probs))
+test_set$Class2 <- 1 - test_set$Class1
+test_set$pred <-
+  factor(ifelse(test_set$Class1 >= .5, "Class1", "Class2"))
+
+# Plot the distribution of Class 1 probabilities
+ggplot(test_set, aes(x = Class1)) +
+  geom_histogram(binwidth = .05) +
+  facet_wrap(~ obs) +
+  xlab("Probability of Class #1")
+```
+
+```{r}
+confusionMatrix(data = test_set$pred, reference = test_set$obs)
+```
+
+Noice that the accuracy is ~84% whereas the No Information Rate is 89%, which is basically the same as the 90% of our majority class (class2). The Kappa score is the normalized version, and reports a low accuracy of 48%.
+There are a lot of terms and statistics presented here, so lets define some of them...
 
 Definition of key terms:
 
@@ -222,13 +245,16 @@ Definition of key terms:
 - False positive (FP): predicted `a` but actual `b`
 - False negative (FN): predicted `b` but actual `a`
 
-```{r, echo=TRUE, message=FALSE}
-numLlvs <- 2
-confusionMatrix(
-   factor(sample(rep(letters[1:numLlvs], 200), 50)),
-   factor(sample(rep(letters[1:numLlvs], 200), 50)))
+Confusion matrix structure for binary classes:
 ```
-
+            TRUTH
+           POS  NEG
+     POS | TP | FP |
+PRED     -----------
+     NEG | FN | TN |
+```
+- *no-information rate*: the largest proportion of the observed classes (in the example class 2 occurs much more than class 1)
+- *P-Value [Acc > NIR]*: a hypothesis test is also computed to evaluate whether the overall accuracy rate is greater than the rate of the largest class
 - *POS*: positive class
 - *NEG*: negative class
 - *Accuracy*: the proportion of the total number of predictions that were correct.
@@ -243,10 +269,32 @@ confusionMatrix(
 - *Detection Rate*: How likely is it to detect a true positive?
 - *Detection Prevalence*: Overall, how often is it wrong?
 
-#### Precision/Recall and F Score
-F Score is a weighted average of the true positive rate (recall) and precision.
+Lets explore precision and recall in more detail below.
 
+#### Precision/Recall and F1 Score
 
+We can get precision recall metrics from the `confusionMatrix()` method as well.
+```{r}
+confusionMatrix(data = test_set$pred, reference = test_set$obs, mode = "prec_recall")
+```
+
+Precision and recall are actually two different metrics. But they are often used together. **Precision** answers the question, "Out of the samples that the model predicted to be positive, how many are truly positive?" The **recall** answers the question, "Out of all the samples that are truly positive, how many can be detected by the model?"
+
+![Illustration from Wikipedia:](https://upload.wikimedia.org/wikipedia/commons/2/26/Precisionrecall.svg)
+
+Often you can specify a maximum length `k` for the predictions. This is call called "precision at k" and "recall at k". By varying the value of `k`, the precision and recall vary as well. We can plot the precision vs recall at varying levels of `k`, very much like an ROC curve (explained below). However, we would like to use a single score to reprsent how good a model is based on its precision/recall, and this is the F1 Score.
+
+The F1 Score is a weighted average of the true positive rate (recall) and precision. It is also defined as the harmonic mean between precision and recall:
+ 
+F1 = 2( (precision * recall) / (precision + recall))
+
+Therefore, the F1 score will be small if either precision ore recall is small.
+
+```{r}
+# precision-recall values and the area under the precision-recall curve
+prSummary(test_set, lev = levels(test_set$obs))
+```
+Here, the AUC is actually the area under the Precision vs Recall curve, and not the ROC.
 
 #### AUC (Area Under ROC Curve)
 
@@ -254,49 +302,37 @@ The AUC is an error metric for binary classifiers, while the ROC is a plot that 
 
 The AUC is a measure of the model's ability to discriminate between two classes. An area of 1.0 represents a model predicted every test sample correctly. An area of 0.5 means the model is as a good as a fair coin.
 
-Example:
+```{r}
+# Note that the ROC score should really be the AUC score
+twoClassSummary(test_set, lev = levels(test_set$obs))
+```
+
+How to plot a ROC
 
 ```{r}
 # load libraries
 library(caret)
 library(plotROC)
-# Load the dataset
-data("PimaIndiansDiabetes")
-control <- trainControl(method="cv", 
-                        summaryFunction=twoClassSummary, 
-                        classProbs=T,
-                        savePredictions = T)
-control <- trainControl(method="cv", number=5,
-                        classProbs=TRUE, savePredictions =TRUE,
-                        summaryFunction=twoClassSummary)
-fit <- train(diabetes~., data=PimaIndiansDiabetes, 
-             method="rf", preProc=c("center", "scale"), 
-             metric="ROC", trControl=control)
-# Select a parameter setting
-selectedIndices <- fit$pred$mtry == 2
-# Plot:
-ggplot(fit$pred[selectedIndices, ], 
-       aes(m = pos, d = factor(obs, levels = c("neg", "pos")))) +
-       geom_roc(hjust = -0.4, vjust = 1.5) + coord_equal()
+
+# Use ggplot2 and plotROC (an extension to ggplot2 for ROC)
+ggplot(test_set, aes(d = obs, m = Class2)) + geom_roc(n.cuts = 5) + style_roc() + geom_rocci(sig.level = .01)
+
 ```
 
-Here, the `ROC` should really be the `AUC`.
+This plot shows us that:
+- the true positive rate = ~0.8 at 0.5 threshold, and a corresponding ~0.07 false positive rate
+- this means that the classifier is pretty good
+- the numbers on the lines are the thresholds
+- the size of the grey boxes are confidence regions for both the Y and X axis at selected thresholds, calculated by the Clopper and Pearson (1934) exact method.
 
+#### Log-loss
+Log-loss is more prevalent for multiclass classifiers. Log-loss evaluates the probabilities produced by classifiers. The probabilities can be viewed as a bayesian posterior probability of your model's predictions given the data observed. For example, if the true label is `1`, but the classifier thinks it should be `0` with a probability of `0.51`, then it is really not making such a big mistake because it is simply not that confident about its prediction.
 
-#### LogLoss
-LogLoss is more prevalent for multiclass classifiers. LogLoss evaluates the probabilities produced by classifiers.
+Another relationship to log-loss is information. The log-loss is the cross entropy between the destribution of the true labels and the predictions. By minimizing the cross entropy, we maximize the accuracy of the classifier.
 
-```{r, echo=TRUE, message=FALSE}
-# load libraries
-library(caret)
-# load the dataset
-data(iris)
-# prepare resampling method
-control <- trainControl(method="cv", number=5, classProbs=TRUE, summaryFunction=mnLogLoss)
-set.seed(7)
-fit <- train(Species~., data=iris, method="rpart", metric="logLoss", trControl=control)
-# display results
-print(fit)
+```{r}
+# compute the Log Loss on the test set
+mnLogLoss(test_set, lev = levels(test_set$obs))
 ```
 
 ### Regression metrics
@@ -338,3 +374,13 @@ print(fit)
 ```
 
 Notice that using `RMSE` metric gives us both RMSE and Rsquared results.
+
+
+## Summary
+
+- the metric you select to optimize your model is important
+- the metric you use to evaluate your model is important
+- use measure appropriate for **your problem**
+- accuracy is often not sufficent/appropriate
+- AUC/ROC is pretty popular, but only appropriate for binary classes
+- only accuracy generalizes to >2 classes!

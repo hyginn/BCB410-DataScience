@@ -33,6 +33,7 @@ library(mlbench)  # for loading some bench marking datasets
 
 # = 1.1 Generating some data to play with
 set.seed(42)
+# Randomly sample from a PMF where Pr(Class1) = 0.2 and Pr(Class2) = 0.8
 true_class <- factor(sample(
   paste0("Class", 1:2),
   size = 1000,
@@ -40,6 +41,7 @@ true_class <- factor(sample(
   replace = TRUE
 ))
 true_class <- sort(true_class)
+# Sample from a beta distribution for the probabilities produced by a "model"
 class1_probs <- rbeta(sum(true_class == "Class1"), 4, 1)
 class2_probs <- rbeta(sum(true_class == "Class2"), 1, 2.5)
 test_set <- data.frame(obs = true_class,
@@ -54,10 +56,7 @@ ggplot(test_set, aes(x = Class1)) +
   facet_wrap(~ obs) +
   xlab("Probability of Class #1")
 
-# Generating the predicted classes based on the typical 50% cutoff for the probabilities,
-# we can compute the confusion matrix, which shows a cross-tabulation of the 
-# observed and predicted classes.
-# The confusionMatrix function can be used to generate these results:
+# Compute the confusion matrix
 confusionMatrix(data = test_set$pred, reference = test_set$obs)
 
 # Or get the confusion matrix w.r.t Precision/Recall
@@ -102,87 +101,15 @@ multiClassSummary(test_set, lev = levels(test_set$obs))
 
 # = 3.1 ROC
 # A helper library for plotting ROCs
-library(plotROC)
-
-# Lets just use the Sonar dataset
-data(Sonar)
-control <- trainControl(
-  method = "cv",
-  summaryFunction = twoClassSummary,
-  classProbs = T,
-  savePredictions = T
-)
-fit <- train(
-  Class ~ .,
-  data = Sonar,
-  method = "rf",
-  preProc = c("center", "scale"),
-  metric = "ROC",
-  trControl = control
-)
-
-# Select a parameter setting
-selectedIndices <- fit$pred$mtry == 2
-# Plot:
-ggplot(fit$pred[selectedIndices, ],
-       aes(m = R, d = factor(obs, levels = c("R", "M")))) +
-  geom_roc(hjust = -0.4, vjust = 1.5) + coord_equal()
+# library(ggplot2)
+# library(plotROC)
+# 
+roc <- ggplot(test_set, aes(d = obs, m = Class2)) + geom_roc(n.cuts = 5)
+styledplot <- roc + style_roc()
+styledplot + geom_rocci(sig.level = .01)
 
 
-# = 3.2 Lift Curves
-set.seed(2)
-lift_training <- twoClassSim(1000)
-lift_testing  <- twoClassSim(1000)
-
-ctrl <- trainControl(method = "cv",
-                     classProbs = TRUE,
-                     summaryFunction = twoClassSummary)
-
-set.seed(1045)
-fda_lift <- train(
-  Class ~ .,
-  data = lift_training,
-  method = "fda",
-  metric = "ROC",
-  tuneLength = 20,
-  trControl = ctrl
-)
-set.seed(1045)
-lda_lift <- train(
-  Class ~ .,
-  data = lift_training,
-  method = "lda",
-  metric = "ROC",
-  trControl = ctrl
-)
-
-set.seed(1045)
-c5_lift <- train(
-  Class ~ .,
-  data = lift_training,
-  method = "C5.0",
-  metric = "ROC",
-  tuneLength = 10,
-  trControl = ctrl,
-  control = C5.0Control(earlyStopping = FALSE)
-)
-
-## Generate the test set results
-lift_results <- data.frame(Class = lift_testing$Class)
-lift_results$FDA <-
-  predict(fda_lift, lift_testing, type = "prob")[, "Class1"]
-lift_results$LDA <-
-  predict(lda_lift, lift_testing, type = "prob")[, "Class1"]
-lift_results$C5.0 <-
-  predict(c5_lift, lift_testing, type = "prob")[, "Class1"]
-head(lift_results)
-
-# The lift function does the calculations and the corresponding plot function is used to plot
-# the lift curve (although some call this the gain curve). The value argument creates reference lines
-lift_obj <- lift(Class ~ FDA + LDA + C5.0, data = lift_results)
-ggplot(lift_obj, values = 60)
-
-# = 3.3 Calibration Curves
+# = 3.2 Calibration Curves
 # Calibration curves can be used to characterisze how consistent the predicted
 # class probabilities are with the observed event rates.
 

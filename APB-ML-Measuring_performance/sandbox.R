@@ -61,3 +61,23 @@ summary(results)
 bwplot(results)
 # Dot-plot
 dotplot(results)
+
+
+
+
+
+
+
+
+library(ggplot2)
+lrows <- 3000
+lcols <- 11
+
+syn_data <- array(data=0, dim=c(lrows, lcols))
+
+colnames(syn_data) <- c("ONE","NUMBER","R1","R2","R3",
+                        "R4", "R5", "R6","NINE","TEN", "ELEVEN")
+
+syn_data[,2] <- c(seq(lrows, 1))
+syn_data[,1] <- c(runif(lrows, 0.0, 7.5))
+
