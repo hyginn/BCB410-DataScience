@@ -1,3 +1,27 @@
+# ___ID___.R
+#
+# Purpose:  A Bioinformatics Course:
+#              R code accompanying the APB-ML-RWeka unit.
+#
+# Version:  0.1
+#
+# Date:     2017  10  14
+# Author:   Truman Wang (truman.wang@mail.utoronto.ca)
+#
+# Versions:
+#           0.1    (Describe ...)
+
+#
+# TODO:
+#
+#
+# == DO NOT SIMPLY  source()  THIS FILE! =======================================
+#
+# If there are portions you don't understand, use R's help system, Google for an
+# answer, or ask your instructor. Don't continue if you don't understand what's
+# going on. That's not how it works ...
+#
+# ==============================================================================
 # = 1 Installing RWeka
 
 # IF YOU ARE USING A MAC AND ARE GETTING ERRORS RUNNING 
@@ -25,7 +49,7 @@ if (!require(MASS, quietly = TRUE)) {
   library(MASS)
 }
 
-# = 2 Environment setup
+# = 2 Package manipulation/Environment setup
 
 # Refresh the Weka package cache
 WPM("refresh-cache")
