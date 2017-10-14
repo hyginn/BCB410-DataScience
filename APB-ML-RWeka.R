@@ -4,6 +4,7 @@
 # "library(RWeka)" THEN RUNNING THIS COMMAND MAY FIX IT: 
 # sudo ln -s $(/usr/libexec/java_home)/jre/lib/server/libjvm.dylib /usr/local/lib
 
+# Installing some packages
 if (!require(RWeka, quietly = TRUE)) {
   install.packages("RWeka")
   library(RWeka)
@@ -18,7 +19,25 @@ if(!require(party, quietly = TRUE)) {
   install.packages("party")
   library(party)
 }
-# = Simple examples using RWeka
+
+if (!require(MASS, quietly = TRUE)) {
+  install.packages("MASS")
+  library(MASS)
+}
+
+# = 2 Environment setup
+
+# Refresh the Weka package cache
+WPM("refresh-cache")
+# List already installed packages
+WPM("list-packages", "installed")
+# list packages available for installation
+WPM("list-packages", "available")
+
+# To install a package run "WPM("install-package", <package>)
+# To remove a package run "WPM("remove-package", <package>)
+
+# = 4 examples using RWeka
 
 # Runnning some tests on the iris dataset. This dataset contains data on three different flowers,
 # setosa, versicolor, and virginica. Each flower has data on its sepal length, sepal width, petal
@@ -62,7 +81,8 @@ summary(GOSlim_j48)
 
 # ======================= Linear Regression =========================================
 # RWeka does not support multinomial linear regression so we will be training a model 
-# on the mtcars dataset using Linear Regression. 
+# on the mtcars dataset using Linear Regression. This data set contains information 
+# for a collection of cars
 
 linear_reg_dataset <- mtcars
 
@@ -78,19 +98,22 @@ summary(mtcars_linear_regression)
 
 # ======================= K means clustering =========================================
 
-# Runs K means clustering on the gene expression dataset, where N is the number of clusters,
-# in this case N=4 since we have 4 different GOSlim term names. For more information uncomment
-# the line below.
+# Runs K means clustering on the iris dataset and myGOExSet. myGOExSet contains gene IDs, 
+# their associated GOSlim term names GOSlim IDs, and gene expression data from different 
+# experiments.
 
 # WOW(SimpleKMeans)
 
+# N is the number of clusters we want to have,in this case N = 3 since we have 
+# 3 different flower types. 
 cl1 <- SimpleKMeans(iris[, -5], Weka_control(N = 3))
 cl1
 
-# Predicts Species using the k means cluster we fit
+# Predicts Species using the k means cluster we fit and represents the predictions in a table
 table(predict(cl1), iris$Species)
 
-# Choose columns 2 to 5 inclusive to create clusters
+
+# Choose columns 2 to 7 inclusive to create clusters
 clusters <- SimpleKMeans(dataset[,2:7], Weka_control(N = 4))
 clusters
 
@@ -101,4 +124,20 @@ table(predict(clusters), dataset$termName)
 # accurately. All GOSlim terms seem to favor cluters 0, and 2. This could imply that they all
 # share some sort of property that these clusters are representing.
 
+# ====================== Bayesian Networks ==============================
 
+# Load the Pima Indians Diabetes dataset
+train_set <- Pima.tr
+test_set <- Pima.te
+
+# Creating a RWeka Bayes net classifier
+BNet <- make_Weka_classifier("weka/classifiers/bayes/BayesNet")
+
+# Generating a Bayes Net
+model <- BNet(type~., data=train_set)
+
+# Viewing our results
+summary(model)
+
+# Evaluating our model
+eval_model <- evaluate_Weka_classifier(model, newdata=Pima.te)
