@@ -3,19 +3,19 @@
 # Purpose:  A Bioinformatics Course:
 #              R code accompanying the RPR-Data Imputation unit.
 #
-# Version:  0.1
+# Version:  0.2
 #
 # Date:     2017  10  06
 # Author:   Greg Huang
 #
 # Versions:
-#           0.1    Learning unit for the RPR-Data Imputation section.
-
+#           0.1    First draft learning unit for the RPR-Data Imputation section.
+#           0.2    Final version
 #
 # TODO:
-# 1. Use MICE to impute data on a R 'datasets' package dataset, 'trees'.  Line
-# 2. Use MICE to impute data on a small GSE4987 dataset with 20 observations. Line
-# 3. Use Hmisc to impute data on a large GSE4987 datset with 6228 observations. Line
+# 2. Use MICE to impute data on a R 'datasets' package dataset, 'trees'.
+# 2. Use MICE to impute data on a small GSE4987 dataset with 20 observations.
+# 3. Use Hmisc to impute data on a large GSE4987 datset with 6228 observations.
 #
 # == DO NOT SIMPLY  source()  THIS FILE! =======================================
 #
@@ -24,6 +24,13 @@
 # going on. That's not how it works ...
 #
 # ==============================================================================
+# Sections:
+# 0. Load libraries                                          Line 36
+# 1. Running MICE on a small synthetic data set              Line 91
+# 2. Running MICE on a small subset of the GSE4987 Dataset   Line 147
+# 3. Running Hmisc's aregImpute() on a large GSE4987 subset  Line 196
+# 4. Exercise solutions                                      Line 243
+
 # Load required packages
 
 source("https://bioconductor.org/biocLite.R")
