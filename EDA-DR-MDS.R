@@ -13,7 +13,7 @@
 #           0.2    (Added section for dependencies of unit)
 #
 #
-# TODO:
+#
 #
 #
 # == DO NOT SIMPLY  source()  THIS FILE! =======================================
@@ -83,7 +83,6 @@ load("./data/GSE3635.RData")
 
 #Let's create a matrix that satisfies the euclidean distance matrix so we can apply classical MDS.
 set.seed(50)
-#TODO: convert to function
 euclidean_distance_matrix <- matrix(1, nrow = 4, ncol = 4)
 euclidean_distance_matrix[row(euclidean_distance_matrix) == col(euclidean_distance_matrix)] <- 0
 euclidean_distance_matrix
@@ -175,15 +174,15 @@ Groups
 ggplot(d, aes(x=points.1, y=points.2, group=Groups)) +
   geom_point(aes(shape=Groups, color=Groups))
 
-#Notice how there seems to be a clusering of crabs from the same groups. This is because
-#their characteristics are more related to each other than crabs from other groups.
+#Notice how crabs from the same group tend to cluster closely together.
+#This suggests they share more characteristics between each other than other crabs
 
 
 
 
 #9 = Multidimensional Scaling with Biological relevance
 
-
+#Let's now try to apply MDS techniques to our Yest cycle data.
 set.seed(30)
 
 #Store our data called measurements and check it's dimensions and class
@@ -209,14 +208,9 @@ d
 result_2D <- isoMDS(d, k=2)
 result_2D
 #our stress value is ~11.9% which is too high. Thus, to get more accurate results,
-#we must increase the number of dimensions. i.e k
-
-#turns out that we need to increase the number of dimensions to improve the stress value.
+#we must increase the number of dimensions.
 #Of course, visualizing and understanding higher than a 3 dimensional plot isn't realistic.
-
-
 #since visualizing 7 dimensions isn't very helpful, let's continue with the 3D results, out of curiousty
-
 
 d_2D <- as.data.frame(result_2D)
 d_2D
@@ -239,7 +233,7 @@ y_3 <- result_3D$points[,2]
 z_3 <- result_3D$points[,3]
 mystery <- scatterplot3d(x=x_3, y=y_3, z=z_3, color="blue", main = "YAR MDS")
 descriptions <- paste(measurements[,1], measurements[,2], sep="&")
-#again, can't say much about the data based on these results.
+#again, can't say much about the data based on these results since a high stress value adds more distortion.
 
 
 # = 10 Tasks to do
