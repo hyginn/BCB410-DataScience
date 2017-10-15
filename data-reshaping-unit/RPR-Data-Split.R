@@ -25,11 +25,11 @@
 
 # = 1 Section - Abstract
 
-#R split and modification is usually used in processing raw data frame downloaded from original database.
-#the original data frame we've got usually too big and complicated for our purpose and further study
-#Therefore we simplify or rearrange data set based on requirement.
+# R split and modification is usually used in processing raw data frame downloaded from original database.
+# the original data frame we've got usually too big and complicated for our purpose and further study
+# Therefore we simplify or rearrange data set based on requirement.
 # in order to make results more reliable and unbiased, we subset the data frame and do annalysis
-#seperately or apply different algorithm in different groups(split-apply-merge analysis).
+# seperately or apply different algorithm in different groups(split-apply-merge analysis).
 
 
 # = 2 Section - Objective
@@ -60,12 +60,12 @@ subset = data[1:2, 1:2]
 
 
 # = Section 5.2: split() in R
-#What if the subset we want is not continuously distributed in the data or the
-#data is too large to look for specific term? we use split function.
+# What if the subset we want is not continuously distributed in the data or the
+# data is too large to look for specific term? we use split function.
 help(split)
-#states usage of split.split(x,f,...)
-#x is the data frame that we want to split, and f is factor or list of factors that we split based on.
-#split(data,data$variable)
+# states usage of split.split(x,f,...)
+# x is the data frame that we want to split, and f is factor or list of factors that we split based on.
+# split(data,data$variable)
 
 # = Section 5.2.1 Task 1:
 df <- data.frame(
@@ -81,11 +81,11 @@ df <- data.frame(
 # = Section 6 : Application
 
 # = Subsection 6.1 : data frame for Modeling
-#Usually we need to build models for investigating relationships(linear or nonlinear) between two or multiple subjects
-#In this way, we need to create a data frame specific for the model from raw data set.
-#Here is a simple example:
-#We want to investigate the relationship of expression data of global transcription profile for YAL002W intron
-#along yeast cell cycle numbers for all samples from GSE3635.
+# Usually we need to build models for investigating relationships(linear or nonlinear) between two or multiple subjects
+# In this way, we need to create a data frame specific for the model from raw data set.
+# Here is a simple example:
+# We want to investigate the relationship of expression data of global transcription profile for YAL002W intron
+# along yeast cell cycle numbers for all samples from GSE3635.
 
 #To reach the goal, we need a data frame for modeling which contains all expression data from
 #GSE3635 for YAL002W.
@@ -123,7 +123,7 @@ exprs(YAL002W)
 
 # = Subsection 6.1.1:Task 2: (test seeking specific annoatation and split it from data.)
 #Coonstructing a data frame for model of investigation of GSE4987 expression data for YAL023C along samples.
-GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, AnnotGPL=TRUE)
+GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, getGPL=FALSE)
 length(GSE4987) # 1
 GSE4987 <- GSE4987[[1]]
 save(GSE4987, file="./data/GSE4987.RData")
@@ -137,12 +137,12 @@ gset2 <- GSE4987
 # = Section 6.2: split-apply-merge analysis
 # Many data analysis problem in bioinformatics involve split-apply-merge strategy,which is
 # breaking up a big problem into multiple pieces and perform operation/functions/algorithms
-#in each piece and then combine them together. for this unit, we only concern split part.
+# in each piece and then combine them together. for this unit, we only concern split part.
 
-#here is a simple example:
-#If researchers want to investigate genes with dfferent functions such as amino acid transport or ATPase activity
-#derived from yeast GOSlim dataset, and apply assays/functions/algorithms on each group combined with expression data(merge part not included here),
-#Because of too many functions for genes under termName in nonorder, the fastest way to get the data we need is using split().
+# here is a simple example:
+# If researchers want to investigate genes with dfferent functions such as amino acid transport or ATPase activity
+# derived from yeast GOSlim dataset, and apply assays/functions/algorithms on each group combined with expression data(merge part not included here),
+# Because of too many functions for genes under termName in nonorder, the fastest way to get the data we need is using split().
 install.packages("readr")
 library(readr)
 # Load the bioconductor package installer
@@ -154,17 +154,17 @@ library(Biobase)
 biocLite("GEOquery")
 library(GEOquery)
 
-#Download Yeast GOSlim for preparation
+# Download Yeast GOSlim for preparation
 url <- "https://downloads.yeastgenome.org/curation/literature/go_slim_mapping.tab"
 download.file(url, destfile = "./data/go_slim_mapping.tab", method = "libcurl")
-scGsl <- read_tsv("./data/go_slim_mapping.tab")
+scGsl <- read_tsv("./data/go_slim_mapping.tab",
 colNames <- c("ID",
               "name",
               "SGDId",
               "Ontology",
               "termName",
               "termID",
-              "status")
+              "status"))
 na.omit(scGsl) ## remove NA values
 
 ##First, split scGsl into multiple groups by its termName annotations
@@ -194,7 +194,7 @@ aaTrans_gene = unique(scGsl$ID[sel])
 # When our objective turns to prediction instead of description and sammaries of primary data, such as Maching
 # Learning that will be discussed in other unit, we typically use test data to simulate the predictive model
 # to see whether the model works fine or not,called as classification model.
-#One of methods to get train and test data is using split.
+# One of methods to get train and test data is using split.
 
 #e.g: using GSE3635 profile to build train and test data frames for classification model.
 ## Train subset from first 10 samples,sample "GSM81064" to "GSM81073"
