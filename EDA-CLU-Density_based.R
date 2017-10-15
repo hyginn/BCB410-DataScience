@@ -186,7 +186,7 @@ points(test1_clean[db_test1$cluster==0,-3], pch = 20, col = "black")
 # Please re-run this line before running the for loop again if you would like
 # to plot using a different time point. Alternatively you can manually set
 # the time_stop variable if that is more convenient.
-cat("Pay attention to console starting now...")
+cat("Pay attention to console starting now and make sure to have run lines 111 to 117...")
 time_stop <- readline(prompt="Enter an integer from 0 to 12 to choose a time stop: ")
 
 # Loop through each BP feature column... just place cursor on the for loop line and
@@ -265,13 +265,16 @@ for (bp in bp_col_idxs){
 
 }
 
-# 3.4 Try to cluster the entire data set (18 dimensional plotting)
+# = 3.4 Try to cluster the entire data set (18 dimensional plotting)
 
 # We use the same workflow as in 3.2
 # Subset and clean data
 test_all_idx <- c(bp_col_idxs, t_col_idxs, go_terms_idx)
 test_all <- myGeneFeatures[, test_all_idx]
-test_all_clean <- na.omit(test_all)
+#test_all_clean <- na.omit(test_all)
+test_all_imputed <- mice(test_all, m=1, maxit = 50, method = "pmm")
+summary(test_all_imputed)
+test_all_clean <- complete(test_all_imputed, 1)
 
 # Figure out best epsilon value
 dbscan::kNNdistplot(test_all_clean[,-19], k =  5)
