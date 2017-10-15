@@ -1,0 +1,93 @@
+Data
+  - high-resolution time series of yeast cell-cycle expression profiles (https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1553209/pdf/2266.pdf)
+  - GEO expression profiles
+  - GO ontology and GOA annotations for yeast
+  - STRING network of functional interaction data
+  - Sequences and annotations via UniProt
+  - A comprehensive set of ID cross-references via UniProt
+  - load(file = "./data/myGOExSet.RData")
+
+
+Outcomes
+  - annotate genes (from yeast cell cycle stuff) with GOA data
+
+Input format
+
+Output format
+  - for each yeast sample (gene), a list of probabilities for each GO term
+    - multiple GO labels for each sample?
+
+Measure performance
+  - https://groups.google.com/forum/#!topic/bcb410_2017/FR_joA9m-uk
+
+Useful R packags
+  - https://www.tidyverse.org/
+  - Leab*R*a provides the Leabra artificial neural network algorithm - https://groups.google.com/forum/#!topic/bcb410_2017/rQuK7V2A4GI
+
+Notes
+  - Gregory - data imputation on GSE??
+  - Scenario draft: https://groups.google.com/forum/#!topic/bcb410_2017/LKjuHhdQads
+    - TODO
+
+TODO
+  - explore yeast cell cycle data, skim paper
+  - what tidyverse packages are available?
+  - GO terms: http://www.ebi.ac.uk/GOA
+  - work through some BCB410 prereq units
+  - explore GitHub code - grad course, workshops x5
+  - discuss inputs and outputs, ultimate goal
+  - read Albert's ML model performance - https://github.com/hyginn/BCB410-DataScience/blob/albert/quantifying-machine-learning-performance/APB-ML-Measuring_performance/README.pdf
+  - applicability of neural nets to biology discussion: https://groups.google.com/forum/#!topic/bcb410_2017/-jvVIg4Tn0E
+  - update to RStudio 1.1 https://blog.rstudio.com/2017/10/09/rstudio-v1.1-released/
+
+
+
+Git workflow
+  - ALbert's post: https://groups.google.com/forum/#!topic/bcb410_2017/nXmS_-tzx-o
+  - https://git-scm.com/book/en/v2/Git-Branching-Remote-Branches
+  1. pull repo into machine
+  2. cd into /bcb40-data-science
+  3. git checkout -b "branchname"
+  4. RStudio commit
+  5. git push origin refs/heads/jenny/ML_Deep_Neural_Networks
+  6. pull request (target master list reviewers)
+  7. reviewer opens pull request and approve, merge
+
+
+
+
+
+
+=======================================================================================
+Overall goal:
+=============
+There are currently 6729 genes in yeast, of which 772 have no GO term annotated, i.e. they are proteins of unknown function. Can integrating data help classify these genes? What functional categories would such integration suggest in the first place? Can we associate unknown genes with functional catgories with computational methods?
+
+
+Strategy:
+=========
+
+- Download and prepare gene expression data, gene ontology data,
+  sequence and annotation data, functional network data.
+
+- Clean and subset the data with imputation/split/merge/reshape methods.
+
+- Apply modelling to convert raw data (e.g. measures on sequence, localization,
+  ...) to features e.g. by first characterizing general correlations, then
+  quantifying the residual for a relationship for a specific gene. How, exactly?
+  Discuss ... (Example: use non-linear modelling on time series, then extract
+  parameters of curve fit, then record position of expression peak in cell-cycle
+  as a feature).
+
+- Apply dimension reduction techniques to reduce and analyze features.
+  (Example: amino acid composition is a 20D vector. Can this be reduced?
+  Which amino acids co-vary? Is there a sequence-length dependence?)
+
+- Apply clustering techniques to gene feature vectors (which features?
+  Discuss! ...) to identify major groupings of genes. Do these correspond
+  to GOSlim categories?
+
+- Use machine learning to predict GO categories at the GOslim level, or even
+  more detailed.
+
+- Use graph data mining to detect communities, bottlenecks, etc.
