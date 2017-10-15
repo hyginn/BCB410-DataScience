@@ -171,7 +171,7 @@ nucle <- newset$nucleolus
 
 
 #fallback data in case of not working
-GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, getGPL=FALSE)
+GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, AnnotGPL=TRUE)
 length(GSE4987) # 1
 GSE4987 <- GSE4987[[1]]
 save(GSE4987, file="./data/GSE4987.RData")
