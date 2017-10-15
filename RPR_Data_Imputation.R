@@ -114,8 +114,7 @@ md.pattern(r_db_data_missing)
 # maxit = 50 is the maximum number of iterations
 # method = method for imputing. 'pmm' stands for "predictive mean matching. there are
 # other methods available.
-# seed 5000 times, an arbitrary number.
-imputed_data <- mice(r_db_data_missing, m=5, maxit = 50, method = "pmm", seed = 5000)
+imputed_data <- mice(r_db_data_missing, m=5, maxit = 50, method = "pmm")
 
 # We can get a comprehensive look at our imputated data after mice runs.
 summary(imputed_data)
@@ -177,14 +176,11 @@ small_GSE_dataset_missing <- prodNA(small_GSE_dataset, noNA = 0.1)
 md.pattern(small_GSE_dataset_missing)
 
 # Impute data and get a summary of the imputations
-imputed_small_GSE_data <- mice(small_GSE_dataset_missing, m=5, maxit = 50, method = "pmm", seed = 5000)
+imputed_small_GSE_data <- mice(small_GSE_dataset_missing, m=5, maxit = 50, method = "pmm")
 summary(imputed_small_GSE_data)
 
 # Add the imputed data into the missing parts of
 complete_small_GSE_data <- complete(imputed_small_GSE_data, 3)
-
-# See how well our imputed data plots with existing data
-xyplot(imputed_small_GSE_data, GSM112133 ~ GSM112134 + GSM112135, pch = 2, cex = 0.5)
 
 # Compare: See the differences between the original and the one we experimented with.
 summary(small_GSE_dataset)           #original
@@ -236,7 +232,23 @@ summary(large_GSE_dataset)
 # impute data in future encounters with data sets with missing values.
 # End of Learning Unit.
 
+# ======================
 # 4.  Exercise solutions
 # Congratulations on completing this learning unit for RPR-Data-Imputation. Hope you enjoyed this unit.
+# Answers:
+# Exercise 1:
+md.pattern(airquality)
+# Answer:This should show 44 total missing values, and 35 of which have the pattern of just Ozone missing.
 #
+# Exercise 2:
+exercise2_impute_data <- mice(airquality, m=5, maxit = 50, method = "pmm")
+exercise2_completed_data <- complete(exercise2_impute_data, 2)
+View(exercise2_completed_data)
+exercise2_fit_data <- with(data = exercise2_impute_data, lm(Wind ~ Temp+Month+Day+Solar.R+Ozone))
+summary(pool(exercise2_fit_data))
+# Answer: 0.2404003
+
+# Exercise 3
+# Simply change the subsetting from 1:10 to 11:20 for the code in section 3. Compare the values between summary(large_GSE_dataset) and
+# summary(completed_large_GSE_dataset). The median does not change for GSM112148, which remains as 0.005550.
 # [END]
