@@ -1,3 +1,4 @@
+# Author: Denitsa Vasileva (Adapted from Dr. Steipe's example)
 # The impulse model generally shows a gene's response to changes in the cellular environment
 # Oftentimes when a cell experiences sharp changes in the extracellular environments,the
 # expression level of a gene either (1) increases or decreases temporarily before (2)
