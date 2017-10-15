@@ -31,6 +31,12 @@ set.seed(123) # let's set seed in case we want to reproduce random examples
 
 # Please run this file using the Run Selected Line(s) command (CMD + [enter] on MacOS)
 
+# Sections:
+# 1 Setup packages       Line 40
+# 2 Warm up example      Line 62
+# 3 Yeast data example   Line 101
+
+
 # = 1  Setup packages
 
 # We get DBSCAN and a variety of other related functions in this
@@ -90,6 +96,7 @@ points(df[db$cluster==0,], pch = 20, col = "black")
 fviz_cluster(db, data = df, stand = FALSE,
              ellipse = FALSE, show.clust.cent = FALSE,
              geom = "point",palette = "jco", ggtheme = theme_classic())
+
 
 # = 3 Yeast data example
 
