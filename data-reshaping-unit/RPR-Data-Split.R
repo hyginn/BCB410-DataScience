@@ -25,11 +25,11 @@
 
 # = 1 Section - Abstract
 
-# R split and modification is usually used in processing raw data frame downloaded from original database.
-# the original data frame we've got usually too big and complicated for our purpose and further study
-# Therefore we simplify or rearrange data set based on requirement.
-# in order to make results more reliable and unbiased, we subset the data frame and do annalysis
-# seperately or apply different algorithm in different groups(split-apply-merge analysis).
+# R split and modification are usually used in processing raw data frames downloaded from original database.
+# The original data frames we've got usually are too big and complicated for our purpose and further study.
+# Therefore we simplify or rearrange data set based on specific requirements.
+# In order to make results more reliable and unbiased, we subset the data frame and do analysis
+# separately or apply different algorithms in different groups(split-apply-merge analysis).
 
 
 # = 2 Section - Objective
@@ -122,7 +122,7 @@ exprs(YAL002W)
 #frame YAL002W would be used in modeling later.
 
 # = Subsection 6.1.1:Task 2: (test seeking specific annoatation and split it from data.)
-#Coonstructing a data frame for model of investigation of GSE4987 expression data for YAL023C along samples.
+#Constructing a data frame for model of investigation of GSE4987 expression data for YAL023C along samples.
 GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, getGPL=FALSE)
 length(GSE4987) # 1
 GSE4987 <- GSE4987[[1]]
@@ -140,9 +140,9 @@ gset2 <- GSE4987
 # in each piece and then combine them together. for this unit, we only concern split part.
 
 # here is a simple example:
-# If researchers want to investigate genes with dfferent functions such as amino acid transport or ATPase activity
+# If researchers want to investigate genes with different functions such as amino acid transport or ATPase activity
 # derived from yeast GOSlim dataset, and apply assays/functions/algorithms on each group combined with expression data(merge part not included here),
-# Because of too many functions for genes under termName in nonorder, the fastest way to get the data we need is using split().
+# Because of too many functions for genes under termName in non-order, the fastest way to get the data we need is using split().
 install.packages("readr")
 library(readr)
 # Load the bioconductor package installer
@@ -191,7 +191,7 @@ aaTrans_gene = unique(scGsl$ID[sel])
 
 
 # = Section 6.3: Train-Test strategy
-# When our objective turns to prediction instead of description and sammaries of primary data, such as Maching
+# When our objective turns to prediction instead of description and summaries of primary data, such as Machine
 # Learning that will be discussed in other unit, we typically use test data to simulate the predictive model
 # to see whether the model works fine or not,called as classification model.
 # One of methods to get train and test data is using split.

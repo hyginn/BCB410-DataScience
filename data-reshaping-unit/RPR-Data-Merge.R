@@ -24,8 +24,9 @@
 # ==============================================================================
 
 # = 1 Section - Abstract
-#merging and joining multiple dataset for preparation of analysis
-#last step in split-apply-merge analysis
+#merging and joining multiple dataset for preparation of analysis.Taking columns and rows needed from
+#multiple datasets and join them together to form new data frame for using.
+#Also can be last step in split-apply-merge analysis
 
 
 # = 2 Section - Objective
@@ -49,7 +50,7 @@
 
 # = 5 Section :Useful functions
 
-# = 5.1 Subsection : add columns or rows prespectively
+# = 5.1 Subsection : add columns or rows respectively
 #adding a single column from 1 to 7
 #cbind for add column, rbind for add rows
 m <- cbind(1, 1:7)
@@ -166,7 +167,7 @@ nucle <- newset$nucleolus
 # = 5.3.1 Task 2:
 #since gset and gset2 has common featureNames, assumed that we want to merge this two ExpressionSets
 # for 6 common featureNames(YAL001C to YAL007C) with 6 samples in gset and 6 samples in gset2
-#what whould you code for?
+#what would you code for?
 
 
 #fallback data in case of not working

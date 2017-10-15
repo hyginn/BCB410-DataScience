@@ -177,7 +177,7 @@ subjmeans <- cast(mdata, id~variable, mean)
 timemeans <- cast(mdata, time~variable, mean)
 
 
-#reshape()
+#reshape() can do either wide or long by setting direction.
 #reshape(mdata, idvar = "id", timevar = "variable", direction = "wide")
 
 # = Subsection 5.3 : Task : test usage of melt and cast
@@ -192,14 +192,14 @@ featureNames(gset2)[1:20]
 sampleNames(gset2)[1:6]
 task.data <- gset2[12:17,1:6]
 # Identify which format the task.data is :_________________
-# Suppose now we want to merging it with some other frames from Yeast GOSlim
-# so we need those sampleNames become one column to reduce column numbers,simplfying the final data frame.
-# Implemet these codes before merging part (remeber to name the new column):
+# Suppose now we want to merge it with some other frames from Yeast GOSlim
+# So we need those sampleNames become one column to reduce column numbers,simplfying the final data frame.
+# Implement these codes before merging part (remember to name the new column):
 
 
 
 
-# Recover the frame from beginning:
+# Recover the frame to the beginning:
 
 
 # = Section 6 : Task solutions
