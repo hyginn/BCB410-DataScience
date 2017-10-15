@@ -144,7 +144,7 @@ table(predict(cl1), iris$Species)
 clusters <- SimpleKMeans(dataset[,2:7], Weka_control(N = 4))
 clusters
 
-# Precits termName using the k means cluster we fit
+# Predicts termName using the k means cluster
 table(predict(clusters), dataset$termName)
 
 # From the results we can see that our clusters are not able to precict the GOSlim terms
