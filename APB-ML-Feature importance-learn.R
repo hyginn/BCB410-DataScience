@@ -217,7 +217,7 @@ myGeneFeatures[is.na(myGeneFeatures)] <- 0
 # using rfe()
 
 # sample soultion:
-# "BP5" "BP3" "BP1" "BP2" "BP4" (all features are important this time)
+# "BP5" "BP3" "BP1" 
 # You can find complete code in wiki page. (Its hiden in the box)
 
 
