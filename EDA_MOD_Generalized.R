@@ -12,10 +12,6 @@
 #           0.1    Template copy
 #           0.2    Initial version
 
-#
-# TODO:
-#
-#
 # == DO NOT SIMPLY  source()  THIS FILE! =======================================
 #
 # If there are portions you don't understand, use R's help system, Google for an
@@ -57,7 +53,7 @@
 # Assign each drug a letter
 drugs <- 0
 for (i in 1:25) {
-    drugs[i] = LETTERS[i]
+    drugs[i] <- LETTERS[i]
 }
 
 # Concentrations
@@ -68,13 +64,13 @@ patientMatrix <- matrix(nrow=750, ncol=18)
 for (i in 1:750) {
     d <- c()
     # Average cell size in micrometers
-    patientMatrix[i, 1] = rnorm(1, mean=45, sd=5)
+    patientMatrix[i, 1] <- rnorm(1, mean=45, sd=5)
     # Patient age
-    patientMatrix[i, 2] = rnorm(1, mean=50, sd=20)
+    patientMatrix[i, 2] <- rnorm(1, mean=50, sd=20)
     # Expression data
-    patientMatrix[i, 3:17] = rnorm(15, mean=2, sd=1.25)
+    patientMatrix[i, 3:17] <- rnorm(15, mean=2, sd=1.25)
     # Drug concentration
-    patientMatrix[i, 18] = sample(concentrations, 1)
+    patientMatrix[i, 18] <- sample(concentrations, 1)
 }
 
 # Assign 30 patients to each drug. Each drug has its own properties: varying
@@ -85,16 +81,16 @@ results <- list()
 for (drug in drugs) {
     results[[drug]] <- matrix(nrow=30, ncol=19)
     patients <- patientMatrix[startIndex:(startIndex+29), 1:18]
-    cellSizeEffect = rnorm(1, mean=.25, sd=0.05)
-    patientAgeEffect = rnorm(1, mean=.25, sd=0.05)
-    expressionEffects = rnorm(15, mean=0, sd=0.1)
-    drugConcentrationEffect = rnorm(1, mean=1, sd=0.25)
+    cellSizeEffect <- rnorm(1, mean=.25, sd=0.05)
+    patientAgeEffect <- rnorm(1, mean=.25, sd=0.05)
+    expressionEffects <- rnorm(15, mean=0, sd=0.1)
+    drugConcentrationEffect <- rnorm(1, mean=1, sd=0.25)
 
     # Addd an error term - this could represent unknown independent variables
     # and/or measurement errors
-    errors = rnorm(30, mean=0, sd=4)
+    errors <- rnorm(30, mean=0, sd=4)
 
-    cellsRemaining = floor(100 - cellSizeEffect * patients[, 1] -
+    cellsRemaining <- floor(100 - cellSizeEffect * patients[, 1] -
       patientAgeEffect * patients[, 2] - patients[, 3:17] %*% expressionEffects -
       - drugConcentrationEffect * patients[, 18] * 5 - errors)
     results[[drug]][, 1] <- cellsRemaining
@@ -120,6 +116,7 @@ dataFrames$A
 # Now, we're interested in predicting Y from the other variables in the
 # data frame. We might be able to do this with a simple linear model. Let's
 # try it on the first drug.
+xnam <- paste0("exprData.", 1:15)
 formula <- as.formula(paste("Y ~ avgCellSize + patientAge + drugConcentration +",
                             paste(xnam, collapse="+")))
 lmFit <- lm(formula, data=dataFrames$A)
@@ -142,9 +139,9 @@ glmFits <- list()
 glmDeviances <- c()
 i <- 1
 for (drug in drugs) {
-    lmFits[[drug]] = lm(formula, data=dataFrames[[drug]])
+    lmFits[[drug]] <- lm(formula, data=dataFrames[[drug]])
     lmDeviances[i] <- deviance(lmFits[[drug]])
-    glmFits[[drug]] = glm(formula, data=dataFrames[[drug]], family=poisson())
+    glmFits[[drug]] <- glm(formula, data=dataFrames[[drug]], family=poisson())
     glmDeviances[i] <- deviance(glmFits[[drug]])
     i <- i + 1
 }
@@ -177,9 +174,9 @@ averageFemaleGrowths <- c(10, 3.8, 0.1, 0.1)
 heightMatrix <- matrix(nrow=1000, ncol=3)
 # Generate 5 timepoints for each of 100 males
 for (i in 1:100) {
-    growthRate = rnorm(1, mean=1, sd=.2)
+    growthRate <- rnorm(1, mean=1, sd=.2)
     for (m in 1:5) {
-        j = (i - 1) * 5 + m
+        j <- (i - 1) * 5 + m
         # Individual id
         heightMatrix[j, 1] = i
         # Age
@@ -189,7 +186,7 @@ for (i in 1:100) {
             heightMatrix[j, 3] <- rnorm(1, mean=149, sd=7.6)
         }
         else {
-            jitter = rnorm(1, mean=0.75, sd=0.05)
+            jitter <- rnorm(1, mean=0.75, sd=0.05)
             heightMatrix[j, 3] <- heightMatrix[j - 1, 3] + jitter
                                     growthRate * averageMaleGrowths[m - 1]
         }
@@ -197,11 +194,11 @@ for (i in 1:100) {
 }
 # Females
 for (i in 1:100) {
-    growthRate = rnorm(1, mean=1, sd=.2)
+    growthRate <- rnorm(1, mean=1, sd=.2)
     for (m in 1:5) {
-        j = 500 + (i - 1) * 5 + m
+        j <- 500 + (i - 1) * 5 + m
         # Individual id
-        heightMatrix[j, 1] = 100 + i
+        heightMatrix[j, 1] <- 100 + i
         # Age
         heightMatrix[j, 2] <- ages[m]
         # Height (cm)
@@ -209,7 +206,7 @@ for (i in 1:100) {
             heightMatrix[j, 3] <- rnorm(1, mean=149, sd=7)
         }
         else {
-            jitter = rnorm(1, mean=0.5, sd=0.05)
+            jitter <- rnorm(1, mean=0.5, sd=0.05)
             heightMatrix[j, 3] <- heightMatrix[j - 1, 3] + jitter +
                                     growthRate * averageFemaleGrowths[m - 1]
         }
@@ -229,18 +226,18 @@ heightDF <- data.frame(id=heightMatrix[, 1], age=heightMatrix[, 2],
 
 # We'll use the lme4 package, which is the standard R package for fitting
 # mixed-effects models.
-install.packages("lme4")
+# install.packages("lme4")
 library(lme4)
 
 # Let's fit a basic model with a single random intercept term (for sex).
-basicModel = lmer(height ~ age + (1|sex), data=heightDF)
+basicModel <- lmer(height ~ age + (1|sex), data=heightDF)
 
 # What faulty assumptions does this make? It assumes a few things that we
 # can correct in our next model:
 #     * The growth rate of males and females is the same
 #     * The growth of any 2 males or any 2 females has the same intercept
 # These are obviously faulty assumptions. Let's correct them now:
-betterModel = lmer(height ~ age + (1 + age|sex) + (1|id), data=heightDF)
+betterModel <- lmer(height ~ age + (1 + age|sex) + (1|id), data=heightDF)
 
 # Let's compare the summaries of the two models
 summary(basicModel)
