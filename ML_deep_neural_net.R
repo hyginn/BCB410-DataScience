@@ -1,4 +1,4 @@
-# ___ID___.R
+# ML_deep_neural_net.R
 #
 # Purpose:  A Bioinformatics Course:
 #              R code accompanying the ML_Deep_Neural_Networks unit.
@@ -68,6 +68,12 @@ if (!require(caret, quietly = TRUE)) {
   library(caret)
 }
 
+if (!require(graphics, quietly = TRUE)) {
+  install.packages("graphics")
+  library(graphics)
+}
+
+
 # = 1.2 Import and clean data
 
 load(file = "./data/myGOExSet.RData")
@@ -77,48 +83,67 @@ output <- class.ind(factor(rawData$termName)) # one hot encoding
 colnames(output) <- make.names(colnames(output)) # remove spacing from column names
 data <- data.frame(input, output)
 data <- na.omit(data)
-N <- dim(data)[1]
 
-# = 2 Fit neural network
+N <- dim(data)[1] # total number of samples
+nFeatures <- dim(input)[2]
+nClasses <- dim(output)[2]
+nClasses <- 11
+# report
+print("============Data Summary============")
+print("Features: ")
+print(colnames(input))
+print("Target classes: ")
+print(colnames(output))
+print(paste("Total number of rows: ", N))
+print("====================================")
 
-# = 2.1 model 1
+# = 2 K fold cross validation for differnt neural network architectures
+
+idx <- sample.int(N)
+K <- 10
+size <- N %/% K
 namesOutput <- paste(colnames(output), collapse=" + ")
 namesInput <- paste(colnames(input), collapse = " + ")
 f <- as.formula(paste(namesOutput, namesInput, sep=" ~ "))
-modelNeuralNet <- neuralnet(f ,trainingdata, hidden=10, threshold=0.01)
-print(modelNeuralNet)
 
-#Test the neural network on some training data
-#testdata <- as.data.frame(data[(s + 1):N,])
-#net.results <- compute(net.sqrt, testdata) #Run them through the neural network
+errorsPerNLayers <- c()
+for(i in nFeatures:nClasses) {
+  neuronLayers = nFeatures:i
+  nLayers = length(neuronLayers)
+  errorsPerFold <- c()
 
-#Lets see what properties net.sqrt has
-#ls(net.results)
+  for(fold in 1:K) {
+    # split into test and train data
+    start <- (fold-1) * size
+    end <- start + size
+    idxTest <- (start + 1):end
+    test <- data[idxTest,]
+    train <- data[-idxTest,]
 
-#Lets see the results
-#print(net.results$net.result)
+    # train
+    nn <- neuralnet(f, train, hidden=neuronLayers, threshold=0.01, act.fct = "logistic", linear.output = FALSE)
+    #plot(nn)
 
-#Lets display a better version of the results
-#cleanoutput <- cbind(testdata,sqrt(testdata),
-#                     as.data.frame(net.results$net.result))
-#colnames(cleanoutput) <- c("Input","Expected Output","Neural Net Output")
-#print(cleanoutput)
+    # test
+    target <- max.col(test[,14:dim(test)[2]])
+    prediction <- max.col(compute(nn, test[,1:13])$net.result)
+    errorsPerFold[fold] <- mean(target == prediction)
 
+    print(paste("Layers: ", nLayers, ", Fold: ", fold, ", Error: ", errorsPerFold[fold]))
+  }
 
+  errorsPerNLayers[nLayers] <- mean(errorsPerFold)
+  print("-----------------------------------------------------------------")
+  print(paste("Layers: ", nLayers, ", Architecture: ", paste(neuronLayers, collapse=" ")))
+  print(paste("Mean error: ", errorsPerNLayers[nLayers]))
+  print("-----------------------------------------------------------------")
 
-# = 2.2 model 2
+}
 
-
-
-
-
-
-# = 99  Task solutions
-
-
-# = 99.1  Task 1: ...
-
-# = 99.2  Task 2: ...
-
+print("=====================SUMMARY=====================")
+x=1:length(errorsPerNLayers)
+y=errorsPerNLayers
+print(x, y, sep=": ")
+plot(x, y, type="l", main="NN Performance", xlab="# of layers", ylab="error")
 
 # [END]
