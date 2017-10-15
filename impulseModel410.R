@@ -1,4 +1,27 @@
-# Author: Denitsa Vasileva (Adapted from Dr. Steipe's example)
+# Purpose:  A Bioinformatics Course:
+#              R code accompanying the EDA-MOD-NonLinearRegression- unit.
+#
+# Version:  1.1
+#
+# Date:     2017  10  14
+# Author:   Denitsa Vasileva (denitsa.vasileva@mail.utoronto.ca)
+#           Parts of code adapted from Dr. Steipe's BCH2024/30 example
+#
+# Versions:
+#           0.1    Has the basic underpinnings of the NonLinear Regression
+#                  Unit
+#
+#
+# TODO:
+#
+#
+# == DO NOT SIMPLY  source()  THIS FILE! =======================================
+#
+# If there are portions you don't understand, use R's help system, Google for an
+# answer, or ask your instructor. Don't continue if you don't understand what's
+# going on. That's not how it works ...
+#
+# ==============================================================================
 # The impulse model generally shows a gene's response to changes in the cellular environment
 # Oftentimes when a cell experiences sharp changes in the extracellular environments,the
 # expression level of a gene either (1) increases or decreases temporarily before (2)
