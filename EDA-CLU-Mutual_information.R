@@ -3,12 +3,13 @@
 # Purpose:  A Bioinformatics Course:
 #              R code accompanying the EDA-CLU-Mutual_information unit.
 #
-# Version:  1.0
+# Version:  1.1
 #
-# Date:     2017  10  14
+# Date:     2017  10  15
 # Author:   Dominick Han (dominick.han@mail.utoronto.ca)
 #
 # Versions:
+#           1.1    (Fixing up the comments while writing Wiki)
 #           1.0    (Finishing, added comments)
 #           0.6    (Added GO BP data (does not perform well))
 #           0.5    (Added GO time data)
@@ -57,7 +58,7 @@ library('cluster');
       matrix[v1[i]-min1+1, v2[i]-min2+1] = matrix[v1[i]-min1+1, v2[i]-min2+1] + 1;
     };
 
-    # Normalize, and calculate the probablity distribution table for v1 and v2 separately
+    # Normalize, and calculate the probability distribution table for v1 and v2 separately
     matrix = matrix/length(v1);
     colS = colSums(matrix);
     rowS = rowSums(matrix);
@@ -77,6 +78,8 @@ library('cluster');
 
     # Calculation
     MI = -(sum(colS)+sum(rowS))/sum(matrix);
+
+    # Added 2 so that the MI_dist() on the same vector would be 0
     return(MI+2);
   };
 
@@ -102,21 +105,27 @@ library('cluster');
     # Value:
     #     Return the Mutual Information distance between two vectors
 
+    # Ignore data frame observations that has all N/A
     ind = apply(data_frame, 1, function(x) all(is.na(x)));
     data_frame = data_frame[ !ind, ];
+
+    # Create distance matrix
     dist = matrix(0, nrow(data_frame), nrow(data_frame));
+
     # Use MI_dist() to calculate pair-wise MI distance
     for (i in 1:nrow(data_frame)) {
       for (j in 1:i) {
         dist[i, j] = MI_dist(unlist(data_frame[i,]), unlist(data_frame[j,]));
       };
     };
+
     # Convert it to distance matrix
     dMI = as.dist(dist);
     return(dMI);
   };
 
 # = 2.2 Syntetic data to cluster
+
   synth_data_list = list();
   labels = list();
   # first 20 data points are uniform distribution
@@ -145,40 +154,44 @@ library('cluster');
   plot(diana(dMI), which.plots=2);
 
 
-# = 2.3 GO-based feature cluster (actual example)
+# = 3 GO-based feature cluster (actual example)
 
   # Get data from our GO dataset
   load("data/myGeneFeatures.RData");
 
+  # Since GO data is only floating points, we need to multiply it to enlarge the data then round it to integer for our MI calculation
   GOTimeData = myGeneFeatures[5:17] * 25;
+
   # Calculate the Mutual Information distance between each data point
   # WARN: THIS CAN BE SLOW
   cat("Clustering on GO time data...(this will be slow)");
   dMI = cal_dMI(GOTimeData);
+
   # Does hclust, agnes, diana 3 types of hierarchy based clustering
   readline(prompt = "Press <Enter> to show GO time data hclust...(zoom to see details)")
   plot(hclust(dMI));
-  attr(dMI, "Labels") = row.names(GOTimeData);
   readline(prompt = "Press <Enter> to show GO time data agnes...(zoom to see details)")
+  attr(dMI, "Labels") = row.names(GOTimeData);
   plot(agnes(dMI), which.plots=2);
   readline(prompt = "Press <Enter> to show GO time data diana...(zoom to see details)")
   plot(diana(dMI), which.plots=2);
 
 
+  # Since GO data is only floating points, we need to multiply it to enlarge the data then round it to integer for our MI calculation
   GOBPData = myGeneFeatures[18:22] * 10;
+
   # Calculate the Mutual Information distance between each data point
   # WARN: THIS CAN BE SLOW
   cat("Clustering on GO Biological Process data...(this will be slow)");
   dMI = cal_dMI(GOBPData);
+
   # Does hclust, agnes, diana 3 types of hierarchy based clustering
   readline(prompt = "Press <Enter> to show GO Biological Process data hclust...(zoom to see details)")
   plot(hclust(dMI));
-  attr(dMI, "Labels") = row.names(GOTimeData);
   readline(prompt = "Press <Enter> to show GO Biological Process data agnes...(zoom to see details)")
+  attr(dMI, "Labels") = row.names(GOTimeData);
   plot(agnes(dMI), which.plots=2);
   readline(prompt = "Press <Enter> to show GO Biological Process data diana...(zoom to see details)")
   plot(diana(dMI), which.plots=2);
 
-
 # [END]
-
