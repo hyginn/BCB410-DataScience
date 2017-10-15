@@ -89,7 +89,7 @@ db <- dbscan::dbscan(df, eps = 0.15, minPts = 5)
 # Plot DBSCAN results using the default plot functions
 plot(df, col=db$cluster)
 
-# Add the outliers/noise as + in the plot
+# Add the outliers/noise as black circles in the plot
 points(df[db$cluster==0,], pch = 20, col = "black")
 
 # Plot DBSCAN results using factoextra
@@ -166,7 +166,7 @@ fviz_cluster(db_test1, data = test1_clean,
              geom = c("point"),
              palette = "jco", ggtheme = theme_classic())
 
-# We can look at the regular plot to compare.]
+# We can look at the regular plot to compare.
 plot(test1_clean[,-3], col=db_test1$cluster)
 
 # Add the outliers as the filled in black circles in the plot to match
