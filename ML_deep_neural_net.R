@@ -87,7 +87,7 @@ data <- na.omit(data)
 N <- dim(data)[1] # total number of samples
 nFeatures <- dim(input)[2]
 nClasses <- dim(output)[2]
-nClasses <- 11
+
 # report
 print("============Data Summary============")
 print("Features: ")
@@ -116,13 +116,16 @@ for(i in nFeatures:nClasses) {
     # split into test and train data
     start <- (fold-1) * size
     end <- start + size
-    idxTest <- (start + 1):end
+    idxTest <- idx[(start + 1):end]
+    idxTrain <- idx[-((start + 1):end)]
     test <- data[idxTest,]
-    train <- data[-idxTest,]
+    train <- data[idxTrain,]
 
     # train
     nn <- neuralnet(f, train, hidden=neuronLayers, threshold=0.01, act.fct = "logistic", linear.output = FALSE)
-    #plot(nn)
+#    if(fold == 1) {
+#      plot(nn)
+#    }
 
     # test
     target <- max.col(test[,14:dim(test)[2]])
@@ -143,7 +146,8 @@ for(i in nFeatures:nClasses) {
 print("=====================SUMMARY=====================")
 x=1:length(errorsPerNLayers)
 y=errorsPerNLayers
-print(x, y, sep=": ")
+# hmmmmmm.........
+print(paste(x, y, sep=": "))
 plot(x, y, type="l", main="NN Performance", xlab="# of layers", ylab="error")
 
 # [END]
