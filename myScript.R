@@ -78,3 +78,4 @@ summary(pool(modelFit1))
 tempData2 <- mice(data,m=50,seed=245435)
 modelFit2 <- with(tempData2,lm(Temp~ Ozone+Solar.R+Wind))
 summary(pool(modelFit2))
+=======
