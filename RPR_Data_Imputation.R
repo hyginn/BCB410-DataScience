@@ -3,19 +3,19 @@
 # Purpose:  A Bioinformatics Course:
 #              R code accompanying the RPR-Data Imputation unit.
 #
-# Version:  0.1
+# Version:  0.2
 #
 # Date:     2017  10  06
 # Author:   Greg Huang
 #
 # Versions:
-#           0.1    Learning unit for the RPR-Data Imputation section.
-
+#           0.1    First draft learning unit for the RPR-Data Imputation section.
+#           0.2    Final version
 #
 # TODO:
-# 1. Use MICE to impute data on a R 'datasets' package dataset, 'trees'.  Line
-# 2. Use MICE to impute data on a small GSE4987 dataset with 20 observations. Line
-# 3. Use Hmisc to impute data on a large GSE4987 datset with 6228 observations. Line
+# 2. Use MICE to impute data on a R 'datasets' package dataset, 'trees'.
+# 2. Use MICE to impute data on a small GSE4987 dataset with 20 observations.
+# 3. Use Hmisc to impute data on a large GSE4987 datset with 6228 observations.
 #
 # == DO NOT SIMPLY  source()  THIS FILE! =======================================
 #
@@ -24,10 +24,32 @@
 # going on. That's not how it works ...
 #
 # ==============================================================================
-# Set working directory
-setwd("C:/Users/Greg/Documents/4th/BCB410/BCB410-DataScience")
+# Sections:
+# 0. Load libraries                                          Line 36
+# 1. Running MICE on a small synthetic data set              Line 91
+# 2. Running MICE on a small subset of the GSE4987 Dataset   Line 147
+# 3. Running Hmisc's aregImpute() on a large GSE4987 subset  Line 196
+# 4. Exercise solutions                                      Line 243
 
 # Load required packages
+
+source("https://bioconductor.org/biocLite.R")
+
+if (!require(readr, quietly = TRUE)) {
+  install.packages("readr")
+  library(readr)
+}
+
+if (!require(Biobase, quietly=TRUE)) {
+  biocLite("Biobase")
+  library(Biobase)
+}
+
+if (!require(GEOquery, quietly=TRUE)) {
+  biocLite("GEOquery")
+  library(GEOquery)
+}
+
 # This is the MICE package, which we will be using to impute our data.
 if (!require(mice, quietly=TRUE)) {
   install.packages("mice")
@@ -66,7 +88,7 @@ if (!require(lattice, quietly = TRUE)){
   library(lattice)
 }
 
-# 1.  Imputation with MICE on an example R database
+# 1.  Imputation with MICE on an example R dataset
 # load in the dataset "trees", a dataset available in R datasets package.
 # This dataset shows girth, height, and volume for black cherry trees.
 r_db_data <- trees
@@ -99,9 +121,9 @@ md.pattern(r_db_data_missing)
 # maxit = 50 is the maximum number of iterations
 # method = method for imputing. 'pmm' stands for "predictive mean matching. there are
 # other methods available.
-# seed 5000 times, an arbitrary number.
-imputed_data <- mice(r_db_data_missing, m=5, maxit = 50, method = "pmm", seed = 5000)
-# We can get a summary after mice runs.
+imputed_data <- mice(r_db_data_missing, m=5, maxit = 50, method = "pmm")
+
+# We can get a comprehensive look at our imputated data after mice runs.
 summary(imputed_data)
 # Now that we have 5 sets of data we can plug back to our dataset with missing values,
 # Simply run the complete(x,...) method and select any 1 of the 5 lists we imputed.
@@ -122,65 +144,118 @@ xyplot(imputed_data, Girth~ Height + Volume, pch=2, cex = 0.5)
 fit <- with(data = imputed_data, lm(Girth ~ Height + Volume))
 summary(pool(fit))
 
-# 2.  MICE example on the small GSE4987 dataset, GSM112133-2 (smaller set)
+# 2.  MICE example on the small GSE4987 data subset.
 # Now we will apply the same process to the GSE4987 yeast cell cycle dataset.
-GSM_data <- read.csv("~/4th/BCB410/BCB410-DataScience/data/GSM112133-2.csv", header = TRUE)
-str(GSM_data)
-summary(GSM_data)
-# Running summary() shows that in the "Value" section, there are some logical expressions
-# mixed into what should be a column of numbers. We will replace those with NA.
-# We will also delete  non-numeric columns, which are "Flagged." and "ID_REF".
-GSM_data_clean <- GSM_data[-c(1,4)]
-GSM_data_clean$VALUE[GSM_data_clean$VALUE == "TRUE"] <- NA
+# Before we get to the GSE examples, we'll load GSE4987 from GEO.
+# Adapted from dataPrep.R
+GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, AnnotGPL=TRUE)
+if (length(GSE4987) > 1) {
+  idx <- grep("GPL1914", attr(GSE4987, "names"))
+} else {
+  idx <- 1
+}
+GSE4987 <- GSE4987[[idx]]
+# again: ... Fallback data
+# save(GSE4987, file="./data/GSE4987.RData")
+# load(file="./data/GSE4987.RData")
+
+# Access contents via methods:
+featureNames(GSE4987)   # rows
+sampleNames(GSE4987)    # columns
+
+experimentData(GSE4987)
+# Access contents by subsetting:
+(tmp <- GSE4987[12:17, 1:6] )
+
+# Access data
+exprs(tmp)
+
+# load the accessed data into small_GSE_dataset
+small_GSE_dataset <- exprs(tmp)
+
+# Get a statistical summary of the small GSE dataset
+summary(small_GSE_dataset)
+# Running summary() shows that indeed there are no "missing values". As a result,
+# Let's randomly put in gaps in our data.
+small_GSE_dataset_missing <- prodNA(small_GSE_dataset, noNA = 0.1)
 
 # Again, we can check out the pattern with md.pattern
-md.pattern(GSM_data_clean)
-# Looks like we don't have any missing data. Let's create 10% NAs.
-GSM_data_clean_missing <- prodNA(GSM_data_clean, noNA = 0.1)
+md.pattern(small_GSE_dataset_missing)
 
-# Impute data
-imputed_GSM_data <- mice(GSM_data_clean_missing, m=5, maxit = 50, method = "pmm", seed = 5000)
-summary(imputed_GSM_data)
+# Impute data and get a summary of the imputations
+imputed_small_GSE_data <- mice(small_GSE_dataset_missing, m=5, maxit = 50, method = "pmm")
+summary(imputed_small_GSE_data)
 
-# Add the imputed data into the missing parts of GSM_data_clean_missing
-complete_GSM_data <- complete(imputed_GSM_data, 3)
+# Add the imputed data into the missing parts of
+complete_small_GSE_data <- complete(imputed_small_GSE_data, 3)
 
-# See how well our imputed data plots with existing data
-xyplot(imputed_GSM_data, VALUE ~ Ratio + INV_VALUE, pch = 2, cex = 0.5)
-
-# Again, we can pool the imputations together using the with() and pool() functions
-GSM_fit <- with(data = imputed_GSM_data, lm(VALUE ~ Ratio + INV_VALUE))
-summary(pool(GSM_fit))
+# Compare: See the differences between the original and the one we experimented with.
+summary(small_GSE_dataset)           #original
+summary(complete_small_GSE_data)     #after random removal and imputation with MICE
 
 # 3.  Hmisc example on large GSE4987 dataset.
 # The Hmisc package is better at handling large datasets. In our case where the data
 # frame has more than 6000 entries, imputations done on MICE and missForest tend to
 # crash.
-# Begin by reading in the large CSV file. This is the GSE4987, GSM112133 sample.
-large_GSM_data <- read.csv("~/4th/BCB410/BCB410-DataScience/data/GSM112133.csv", header = TRUE)
-# Clean out the categorical data. Remaining data are Ratio and INV_VALUE.
-large_GSM_data_clean <- large_GSM_data[-c(1,2,4)]
+# Begin by reading in a much larger set. In this case, we'll get the first 10 samples in GSE4987.
+(bigset <- GSE4987[12:6228, 1:10] ) #include 10 of the samples and all 6000+ features/observations.
 
-# Get a summary for this cleaned data set, making sure they are numerical.
-summary(large_GSM_data_clean)
+# access data
+exprs(bigset)
+large_GSE_dataset <- exprs(bigset)
 
-# Here is the big chunk for Hmisc imputation.
-imputed_large_GSM_data_clean <- aregImpute(formula = ~Ratio + INV_VALUE, data = large_GSM_data_clean, n.impute = 5)
+summary(large_GSE_dataset)
+
+# Upon examining the summary of the large dataset, we find that there are actually already NA's littered throughout each column / sample.
+# Here we run the Hmisc imputation method to fill in those blanks. The next three lines set up the "formula" as well as preparing the data
+# for the Hmisc function.
+colNames <- (sampleNames(GSE4987)[1:10])
+impute_colNames <- as.formula(c("~", paste(colNames, collapse = '+')))
+large_GSE_dataset_df <- as.data.frame.matrix(large_GSE_dataset)
+
+col_for_xyplot <- sampleNames(GSE4987)[2:10]
+xy_formula <- as.formula(c("~", paste(col_for_xyplot, collapse = '+')))
+
+
+# Run Hmisc. This will take about 30 seconds. We will do 5 different iterations, as per our previous examples.
+imputed_large_GSE_data <- aregImpute(formula = impute_colNames, data = large_GSE_dataset_df, n.impute = 5)
 
 # Now we have a list of imputed values available (set of 5).
 # We will use impute.transcan() function to select a specific set of imputations and
 # Re-insert them into the original data frame with missing values.
-# Here, I arbitrarily selected imputation iteration number 2, out of 5 available.
-imputed_transcan <- impute.transcan(imputed_large_GSM_data_clean, data = large_GSM_data_clean, imputation = 2, list.out = TRUE, pr = FALSE, check = FALSE)
-completed_large_GSM_data <- as.data.frame(do.call(cbind, imputed_transcan))
-completed_large_GSM_data <- completed_large_GSM_data[,colnames(large_GSM_data_clean), drop = FALSE]
+# Here, I arbitrarily selected imputation iteration number 2, out of the 5 available.
+imputed_transcan <- impute.transcan(imputed_large_GSE_data, data = large_GSE_dataset_df, imputation = 2, list.out = TRUE, pr = FALSE, check = FALSE)
+completed_large_GSE_dataset <- as.data.frame(do.call(cbind, imputed_transcan))
+completed_large_GSE_dataset <- completed_large_GSE_dataset[,colnames(large_GSE_dataset_df), drop = FALSE]
 
-# Summary of complete_large_GSM_data and note that the spaces have been filled in.
-summary(completed_large_GSM_data)
+# Summary of complete_large_GSM_data and note that the spaces have been filled in. (No more NAs)
+summary(completed_large_GSE_dataset)
 
-# This learnign unit demonstrated 2 types of data imputation packages available
+# compare this with the original dataset
+summary(large_GSE_dataset)
+
+# This learning unit demonstrated 2 types of data imputation packages available
 # in R, and hopefully provided enough information for everyone to be able to
 # impute data in future encounters with data sets with missing values.
+# End of Learning Unit.
 
+# ======================
+# 4.  Exercise solutions
+# Congratulations on completing this learning unit for RPR-Data-Imputation. Hope you enjoyed this unit.
+# Answers:
+# Exercise 1:
+md.pattern(airquality)
+# Answer:This should show 44 total missing values, and 35 of which have the pattern of just Ozone missing.
+#
+# Exercise 2:
+exercise2_impute_data <- mice(airquality, m=5, maxit = 50, method = "pmm")
+exercise2_completed_data <- complete(exercise2_impute_data, 2)
+View(exercise2_completed_data)
+exercise2_fit_data <- with(data = exercise2_impute_data, lm(Wind ~ Temp+Month+Day+Solar.R+Ozone))
+summary(pool(exercise2_fit_data))
+# Answer: 0.2404003
 
+# Exercise 3
+# Simply change the subsetting from 1:10 to 11:20 for the code in section 3. Compare the values between summary(large_GSE_dataset) and
+# summary(completed_large_GSE_dataset). The median does not change for GSM112148, which remains as 0.005550.
 # [END]
