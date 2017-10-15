@@ -123,7 +123,7 @@ exprs(YAL002W)
 
 # = Subsection 6.1.1:Task 2: (test seeking specific annoatation and split it from data.)
 #Constructing a data frame for model of investigation of GSE4987 expression data for YAL023C along samples.
-GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, getGPL=FALSE)
+GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, AnnotGPL=TRUE)
 length(GSE4987) # 1
 GSE4987 <- GSE4987[[1]]
 save(GSE4987, file="./data/GSE4987.RData")
