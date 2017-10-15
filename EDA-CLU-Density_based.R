@@ -33,19 +33,32 @@ set.seed(123) # let's set seed in case we want to reproduce random examples
 
 # = 1  Setup packages
 
+# We get DBSCAN and a variety of other related functions in this
+# package. Note that the fcp package also has a DBSCAN function
+# but it is much slower than the implementation in the dbscan library
 if (!require("dbscan", quietly = TRUE)) {
   install.packages("dbscan")
   library(dbscan)
 }
+
+# This package offers a nice visualization tool based on ggplot2
 if (!require("factoextra", quietly = TRUE)) {
   install.packages("factoextra")
   library(factoextra)
+}
+
+# This is the MICE package, which we will be using to impute our data.
+if (!require(mice, quietly=TRUE)) {
+  install.packages("mice")
+  library(mice)
 }
 
 # = 2 Warm up example
 # Adapted from the example in the STHDA article: goo.gl/2VbeCf
 
 # = 2.1 Data setup
+
+# Get multishapes data from factoextra
 data("multishapes", package = "factoextra")
 df <- multishapes[, 1:2]
 
@@ -103,33 +116,43 @@ go_terms_idx <- grep("^termName$", colnames(myGeneFeatures))
 # Subset for the 2 cols (we need to go term column index for the table)
 test_set1 <- c(bp_col_idxs[1], t_col_idxs[1], go_terms_idx)
 test1 <- myGeneFeatures[, test_set1]
+summary(test1)
 
 # Let's do some data cleanup
 # We can either omit all rows with any NAs in the columns
-test1_no_na <- na.omit(test1)
+#test1_no_na <- na.omit(test1)
 
-# Or we can impute the data, here I use MICE
+# Or we can impute the data, here I use the workflow suggested
+# in the data_imputation unit, except with m=1 since I'll
+# just be taking the first pool anyways
+test1_no_na <- mice(test1, m=1, maxit = 50, method = "pmm")
+
+# Let's take a look at the new imputed data
+summary(test1_no_na)
+
+# Choose the first set of the 5
+test1_clean <- complete(test1_no_na, 1)
 
 # Run the kNNdistplot in the dbscan library
-dbscan::kNNdistplot(test1_no_na[,1:2], k =  5)
+dbscan::kNNdistplot(test1_clean[,1:2], k =  5)
 abline(h = 0.1, lty = 5) # too early
 abline(h = 0.2, lty = 5) # too early
 abline(h = 0.3, lty = 5) # looks about right, use eps = 0.3
 
 # Run DBSCAN and store results
-db_test1 <- dbscan::dbscan(test1_no_na[,1:2], eps = 0.3, minPts = 5)
+db_test1 <- dbscan::dbscan(test1_clean[,1:2], eps = 0.3, minPts = 5)
 
 # The follwing table tells us how many data points from each cluster (rows)
 # belong to which GO term. Note that row 0 is always the outlier/noise
 #  category, which means that these points do not belong to any cluster
-table(db_test1$cluster, test1_no_na$termName)
+table(db_test1$cluster, test1_clean$termName)
 
 # For example, row 1 corresponds to cluster 1 and there are 24 points with
 # the 'DNA replication' GO term attributed to them, and 1 point with the
 # 'response to osmotic stress' GO term attributed.
 
 # Note that black circles are outlier/noise points
-fviz_cluster(db_test1, data = test1_no_na,
+fviz_cluster(db_test1, data = test1_clean,
              choose.vars = c("BP1", "t0"),
              stand = FALSE,
              ellipse = FALSE, show.clust.cent = FALSE,
@@ -137,15 +160,16 @@ fviz_cluster(db_test1, data = test1_no_na,
              palette = "jco", ggtheme = theme_classic())
 
 # We can look at the regular plot to compare.]
-plot(test1_no_na[,-3], col=db_test1$cluster)
+plot(test1_clean[,-3], col=db_test1$cluster)
 
 # Add the outliers as the filled in black circles in the plot to match
 # the fviz_cluster plot
-points(test1_no_na[db_test1$cluster==0,-3], pch = 20, col = "black")
+points(test1_clean[db_test1$cluster==0,-3], pch = 20, col = "black")
 
 
 # For the next section, please enter numbers when typing in values.
 # Error checking is not performed on the inputs so proper inputs are assumed.
+
 # = 3.3 Looped plotting for every time point against every BP feature
 
 # \!!!/ Any time a readline command is executed, please head
@@ -173,7 +197,12 @@ for (bp in bp_col_idxs){
   clus_set <- myGeneFeatures[, clus_set_idxs]
 
   # Remove NA values from clus_set
-  clus_set_clean <- na.omit(clus_set)
+  #clus_set_clean <- na.omit(clus_set)
+
+  # Impute the data to remove NA instead of omit
+  clus_set_imputed <- mice(clus_set, m=1, maxit = 50, method = "pmm")
+  summary(clus_set_imputed)
+  clus_set_clean <- complete(clus_set_imputed, 1)
 
   # Run the kNNdistplot function, with k = 5. Since each plot is different, we must
   # allow for a customization for epsilon (the eps variable)
@@ -259,3 +288,5 @@ fviz_cluster(db_test_all, data = test_all_clean[,-19], stand = FALSE,
              ellipse = FALSE, show.clust.cent = FALSE,
              geom = c("point"),
              palette = "jco", ggtheme = theme_classic())
+
+# That is the end of the unit! Hopefully it was simple enough to follow along.
