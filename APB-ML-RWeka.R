@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # ___ID___.R
 #
 # Purpose:  A Bioinformatics Course:
@@ -23,18 +22,15 @@
 # going on. That's not how it works ...
 #
 # ==============================================================================
-=======
->>>>>>> master
+
 # = 1 Installing RWeka
 
 # IF YOU ARE USING A MAC AND ARE GETTING ERRORS RUNNING 
 # "library(RWeka)" THEN RUNNING THIS COMMAND MAY FIX IT: 
 # sudo ln -s $(/usr/libexec/java_home)/jre/lib/server/libjvm.dylib /usr/local/lib
 
-<<<<<<< HEAD
 # Installing some packages
-=======
->>>>>>> master
+
 if (!require(RWeka, quietly = TRUE)) {
   install.packages("RWeka")
   library(RWeka)
