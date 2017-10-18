@@ -1,0 +1,19 @@
+The "utilities" directory is meant for R scripts that are source()'d on startup,
+to make functions or other assets available in the main workspace when loading
+the project. All R scripts in the ./utilities directory are source()'d when
+the init() function is executed by the user.
+
+- Scripts in this directory must be named
+    <learning unit ID>_utilities.R
+
+ - All scripts in this directory must be "clean" in the sense that they
+     only define functions or load variables but do not have other side effects.
+ - Function names must be specific, to guard against being overwritten by
+     other script code.
+ - Every function must be preceded by code that announces loading
+     to stderr:  message("<unit-ID: loading function <function-name>()")
+ - Script files must have the usual headers.
+ - Script files must end with a final invocation:  # [END]
+ - Refer to ./utilities/BCB410-DataScience_utilities.R for an examples.
+
+# [END]
