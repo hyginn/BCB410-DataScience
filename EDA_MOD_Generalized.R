@@ -219,6 +219,9 @@ hist(dataFrames$Y)
 #       be to predict height based on age. A mixed-effects model is a good
 #       choice for this data set because much of what determines height is
 #       best modeled as a random effect (everyone grows at a different rate).
+#
+#       This section was heavily inspired by the tutorial by Bodo Winter,
+#       listed in the references section of the Wiki page.
 
 ages <- c(12, 14, 16, 18, 20)
 averageMaleGrowths <- c(12.5, 10, 4.5, 0.5)
@@ -324,5 +327,7 @@ save(basicModel, file = "/tmp/basicModel.rda")
 # ... and then loaded again using the following command.
 basicModel <- NULL
 load("/tmp/basicModel.rda")
+# Additionally, the new model can be used to predict on new data.
+# predict(basicModel, newdata)
 
 # [END]
