@@ -3,14 +3,15 @@
 # Purpose:  A Bioinformatics Course:
 #              R code accompanying the RPR-Data Imputation unit.
 #
-# Version:  0.2
+# Version:  0.3
 #
 # Date:     2017  10  06
 # Author:   Greg Huang
 #
 # Versions:
-#           0.1    First draft learning unit for the RPR-Data Imputation section.
-#           0.2    Final version
+#           0.1    First draft of RPR-Data Imputation learning unit.
+#           0.2    Final version for review
+#           0.3    First edited version after code review
 #
 # TODO:
 # 2. Use MICE to impute data on a R 'datasets' package dataset, 'trees'.
@@ -26,12 +27,13 @@
 # ==============================================================================
 # Sections:
 # 0. Load libraries                                          Line 36
-# 1. Running MICE on a small synthetic data set              Line 91
-# 2. Running MICE on a small subset of the GSE4987 Dataset   Line 147
-# 3. Running Hmisc's aregImpute() on a large GSE4987 subset  Line 196
-# 4. Exercise solutions                                      Line 243
+# 1. Intro/Exploration of missingness                        Line 93
+# 2. Running MICE on a small synthetic data set              Line 146
+# 3. Running MICE on a small subset of the GSE4987 Dataset   Line 211
+# 4. Running Hmisc's aregImpute() on a large GSE4987 subset  Line 276
+# 5. Exercise solutions                                      Line 337
 
-# Load required packages
+# 0.  Load required packages
 
 source("https://bioconductor.org/biocLite.R")
 
@@ -57,14 +59,14 @@ if (!require(mice, quietly=TRUE)) {
 }
 
 # The VIM package, acronym for "Visualization and Imputation of Missing Values",
-# help us visualize and analyze our data that contains missing elements before we
-# impute them
+# help us visualize and analyze our data that contains missing elements before
+# we impute them
 if (!require(VIM, quietly=TRUE)) {
   install.packages("VIM")
   library(VIM)
 }
 
-# The missForest package is used to generate random missing data in our examples.
+# missForest package is used to generate random missing data in our examples.
 if (!require(missForest, quietly=TRUE)) {
   install.packages("missForest")
   library(missForest)
@@ -76,75 +78,137 @@ if (!require(Hmisc, quietly = TRUE)){
   library(Hmisc)
 }
 
-# Provide one of the datasets for our first example.
+# Provide datasets for our exercises.
 if (!require(datasets, quietly = TRUE)){
   install.packages("datasets")
   library(datasets)
 }
 
-# Lattice is primarily a tool used to show multivariate relationships in our data.
+# Lattice is primarily used to show multivariate relationships in our data.
 if (!require(lattice, quietly = TRUE)){
   install.packages("lattice")
   library(lattice)
 }
 
-# 1.  Imputation with MICE on an example R dataset
-# load in the dataset "trees", a dataset available in R datasets package.
-# This dataset shows girth, height, and volume for black cherry trees.
-r_db_data <- trees
+# 1.  Missingness Demo
+# Let's create a synthetic data frame. Here, I created 4 different cell
+# types, labeled from A-D as ct_A, ct_B, ct_C, and ct_D, and each
+# with a different growth rate in a certain medium. The synthetic data
+# shows the cell colony sizes over the first 10 time measurements.
+ct_A <- c(5,10,15,20,25,30,35,40,45,50)
+ct_B <- c(5,10,20,40,80,160,320,640,1280,2560)
+ct_C <- c(5,4,3,2,1,0,0,0,0,0)
+ct_D <- c(5,4.9,4.8,4.7,4.6,4.5,4.3,4.2,4.1,4)
+synth_df <- data.frame(ct_A,ct_B,ct_C,ct_D)
 
-# Display the structure of the dataseet
-str(trees)
+# Check for correlation in between variables in this data frame
+# We see some pretty good high correlation r values here.
+cor(synth_df)
 
-# Obtain a summary of the dataset
-summary(trees)
+# I will not use this for MCAR demo because MCAR very rarely happens and
+# requires essentially a completely random set of data.
 
-# Since this data is complete (no missing values), we will perform a random deletion
-# and remove 5% of the data, using the prodNA() function. It is found in the
-# missForest package.
-r_db_data_missing <- prodNA(trees, noNA = 0.05)
+# 1.1 MAR: Missingness is random, but the missing data can be inferred
+#          from the observed data
+# Here we use random deletion and remove 5% of the data, using the prodNA()
+# function found in the missForest package.
+set.seed(100)
+df_MAR <- prodNA(synth_df, noNA = 0.05)
+View(df_MAR)
 
-# at this point it is important to realize that we need to remove categorical values.
-# in this example, there are none, so we don't need to delete any column of data.
+# Now, with missing values in the data frame, cor() wouldn't work anymore.
+# There is actually a complete-case analysis tool in cor(), which is
+# complete.obs (listwise deletion)
+cor(df_MAR, use = "complete.obs")
 
-# Obtain a summary of the dataset, now with 5% values removed.
-summary(r_db_data_missing)
+# Compare this to the one we had with the full data. Now it looks like all
+# variables are strongly correlated to one another. Probably wouldn't want
+# that!
+
+# Let's do a massive loss of data this time: 30% loss.
+set.seed(100)
+df_MAR_thirty <- prodNA(synth_df, noNA = 0.3)
+# Obviously, the results with CCA is terrible.
+cor(df_MAR_thirty, use = "complete.obs")
+
+
+# 1.2 MNAR: Suppose for whatever reason, the person collecting data did not
+#           record values when less than 2. Then, the missing data is MNAR,
+#           as there is a specific reason why the NAs are there.
+df_MNAR <- synth_df
+df_MNAR[df_MNAR < 2] <- NA
+View(df_MNAR)
+
+# Again, correlation analysis shows r values of close to 1 across the board
+# Which is not desireable compared to the original data.
+cor(df_MNAR, use = "complete.obs")
+
+# 2.  Running MICE on a small synthetic data set
+# Now that we've seen the different types of missing data and seen how
+# CCA can be a bad way of dealing with our data, we can finally move
+# on and look at imputation methods to avoid CCA.
+# We'll use the same synthetic data created in section 1 of the script.
+
+# At this point it is important to realize that we need to remove categorical
+# values, as mice does not take it. In this example, there are none, so we
+# don't need to delete any column of data.
+
+# Obtain a summary of the dataset, now with 10% values removed.
+summary(df_MAR)
 
 # Now we are ready to impute our missing data.
 # First, we'd like to see if there's a pattern with the missing data.
-md.pattern(r_db_data_missing)
+# Wiki demomnstrates how to read the resulting table.
+md.pattern(df_MAR)
 
 # Now, we use mice to impute the missing spots.
-# Using the mice function, we look into the r_db_data_missing file.
-# m = 5 indicates the default number of imputed datasets, so in this case we'll get 5
-# different sets of imputed data for us to select from, or to pool together.
+# Using the mice function, we look into the df_MAR file.
+# m = 5 indicates the default number of imputed datasets, so in this case we'll
+# get 5 different sets of imputed data for us to select from, or to pool
+# together.
 # maxit = 50 is the maximum number of iterations
-# method = method for imputing. 'pmm' stands for "predictive mean matching. there are
-# other methods available.
-imputed_data <- mice(r_db_data_missing, m=5, maxit = 50, method = "pmm")
+# method = method for imputing. 'pmm' stands for "predictive mean matching.
+# there are other methods available.
+# we can set a seed for mice functions as well.
+imputed_data <- mice(df_MAR, m=5, maxit = 50,
+                     method = "pmm", seed = 100)
 
 # We can get a comprehensive look at our imputated data after mice runs.
+# You can also see what values each of the 5 iterations yielded by examining
+# imputed_data in the Environment window.
 summary(imputed_data)
-# Now that we have 5 sets of data we can plug back to our dataset with missing values,
-# Simply run the complete(x,...) method and select any 1 of the 5 lists we imputed.
-# I arbitrarily selected set #2.
-r_db_data_complete <- complete(imputed_data, 2)
+# Now that we have 5 sets of data we can plug back to our dataset with missing
+# values, simply run the complete()) method and select any 1 of the 5 lists
+# we imputed. Here, I selected set #1.
+df_MAR_completed <- complete(imputed_data, 1)
 
-# You can open all three datasets: r_db_data, r_db_data_missing, and r_db_data_complete
-# for comparison.
+# Now let's have a look at the original correlation matrix:
+cor(synth_df)
 
-# We can use some plots to have visualizations of our imputed data. The pink icons are
-# the imputed numbers. Here we can see that the imputed numbers are rougly in line with
-# the existing data.
-xyplot(imputed_data, Girth~ Height + Volume, pch=2, cex = 0.5)
+# and our imputed one after MAR:
+cor(df_MAR_completed)
 
-# It is also possible to take the 5 sets generated and fit a linear model to the data.
-# Using mice, we use the with() function to fit the data, and pool() method the pool
-# results together.
-fit <- with(data = imputed_data, lm(Girth ~ Height + Volume))
+# Pretty similar, and much better than CCA!
+
+# Additionally, we can use some plots to have visualizations of our imputed data.
+# The pink icons are the imputed numbers. Here we can see that the imputed numbers
+# are rougly in line with the existing data.
+xyplot(imputed_data, ct_B ~ ct_A + ct_C + ct_D, pch=2, cex = 0.5)
+
+# It is also possible to take the 5 sets generated and fit a linear model to
+# the data. Using mice, we use the with() function to fit the data, and pool()
+# method the pool results together.
+fit <- with(data = imputed_data, lm(ct_B ~ ct_A + ct_C + ct_D))
 summary(pool(fit))
 
-# 2.  MICE example on the small GSE4987 data subset.
+# On another note, how does mice perform as more and more data is lost?  Let's go
+# with our 30% loss case. You can see that the imputation isn't as great anymore.
+imputed_data_thirty <- mice(df_MAR_thirty, m=5, maxit = 50,
+                     method = "pmm", seed = 100)
+df_MAR_thirty_completed <- complete(imputed_data_thirty,2)
+cor(df_MAR_thirty_completed)
+
+# 3.  MICE example on the small GSE4987 data subset.
 # Now we will apply the same process to the GSE4987 yeast cell cycle dataset.
 # Before we get to the GSE examples, we'll load GSE4987 from GEO.
 # Adapted from dataPrep.R
@@ -155,9 +219,6 @@ if (length(GSE4987) > 1) {
   idx <- 1
 }
 GSE4987 <- GSE4987[[idx]]
-# again: ... Fallback data
-# save(GSE4987, file="./data/GSE4987.RData")
-# load(file="./data/GSE4987.RData")
 
 # Access contents via methods:
 featureNames(GSE4987)   # rows
@@ -170,35 +231,56 @@ experimentData(GSE4987)
 # Access data
 exprs(tmp)
 
-# load the accessed data into small_GSE_dataset
-small_GSE_dataset <- exprs(tmp)
+# load the accessed data into snippet_GSE_dataset
+snippet_GSE_dataset <- exprs(tmp)
 
-# Get a statistical summary of the small GSE dataset
-summary(small_GSE_dataset)
-# Running summary() shows that indeed there are no "missing values". As a result,
-# Let's randomly put in gaps in our data.
-small_GSE_dataset_missing <- prodNA(small_GSE_dataset, noNA = 0.1)
+# Let's have a look at the correlation matrix of our snippet
+cor(snippet_GSE_dataset)
+# Hmm, we are actually seeing good correlation coefficients across the board
+# Given the structure of our data set, it seems like the separate transcription
+# profiles have similar behaviour across the 30 minutes in this snippet.
+
+# Get a statistical summary of the snippet GSE dataset
+summary(snippet_GSE_dataset)
+# Running summary() shows that there are no missing values (NA). As a result,
+# Let's randomly put in gaps in our data. This will be a case of MAR, as we are
+# removing items at random, but we can likely impute some of those missing
+# values reasonably through imputation
+set.seed(150)
+snippet_GSE_dataset_missing <- prodNA(snippet_GSE_dataset, noNA = 0.1)
 
 # Again, we can check out the pattern with md.pattern
-md.pattern(small_GSE_dataset_missing)
+md.pattern(snippet_GSE_dataset_missing)
 
 # Impute data and get a summary of the imputations
-imputed_small_GSE_data <- mice(small_GSE_dataset_missing, m=5, maxit = 50, method = "pmm")
-summary(imputed_small_GSE_data)
+imputed_snippet_GSE_data <- mice(snippet_GSE_dataset_missing, m=5,
+                                 maxit = 50, method = "pmm", seed = 100)
 
-# Add the imputed data into the missing parts of
-complete_small_GSE_data <- complete(imputed_small_GSE_data, 3)
+summary(imputed_snippet_GSE_data)
 
-# Compare: See the differences between the original and the one we experimented with.
-summary(small_GSE_dataset)           #original
-summary(complete_small_GSE_data)     #after random removal and imputation with MICE
+# Add the imputed data into the missing parts
+complete_snippet_GSE_data <- complete(imputed_snippet_GSE_data, 1)
 
-# 3.  Hmisc example on large GSE4987 dataset.
-# The Hmisc package is better at handling large datasets. In our case where the data
-# frame has more than 6000 entries, imputations done on MICE and missForest tend to
-# crash.
-# Begin by reading in a much larger set. In this case, we'll get the first 10 samples in GSE4987.
-(bigset <- GSE4987[12:6228, 1:10] ) #include 10 of the samples and all 6000+ features/observations.
+# Check correlation:
+cor(complete_snippet_GSE_data)
+
+# Compare: See the differences between the original and the one we experimented
+# with (after random removal and imputation with MICE.
+cor(snippet_GSE_dataset)           #original
+cor(complete_snippet_GSE_data)     #experimented
+# Well, it's not too bad. Generally speaking, the matrix does not look too
+# far off. But considering that this is a larger data set with more values
+# missing, mice performed well enough and did not show drastic deviations
+# from the original.
+
+# 4.  Hmisc example on large GSE4987 dataset.
+# The Hmisc package is better at handling large datasets. In our case where the
+# data frame has more than 6000 entries, imputations done on MICE and
+# missForest tend to crash.
+# Begin by reading in a much larger set. In this case, we'll get the first 10
+# samples in GSE4987. [1:10] will include 10 of the samples and all 6000+
+# features/observations.
+(bigset <- GSE4987[12:6228, 1:10] )
 
 # access data
 exprs(bigset)
@@ -206,9 +288,10 @@ large_GSE_dataset <- exprs(bigset)
 
 summary(large_GSE_dataset)
 
-# Upon examining the summary of the large dataset, we find that there are actually already NA's littered throughout each column / sample.
-# Here we run the Hmisc imputation method to fill in those blanks. The next three lines set up the "formula" as well as preparing the data
-# for the Hmisc function.
+# Upon examining the summary of the large dataset, we find that there are
+# actually already NA's littered throughout each column / sample. Here we run
+# the Hmisc imputation method to fill in those blanks. The next three lines
+# set up the "formula" as well as preparing the data for the Hmisc function.
 colNames <- (sampleNames(GSE4987)[1:10])
 impute_colNames <- as.formula(c("~", paste(colNames, collapse = '+')))
 large_GSE_dataset_df <- as.data.frame.matrix(large_GSE_dataset)
@@ -217,22 +300,33 @@ col_for_xyplot <- sampleNames(GSE4987)[2:10]
 xy_formula <- as.formula(c("~", paste(col_for_xyplot, collapse = '+')))
 
 
-# Run Hmisc. This will take about 30 seconds. We will do 5 different iterations, as per our previous examples.
-imputed_large_GSE_data <- aregImpute(formula = impute_colNames, data = large_GSE_dataset_df, n.impute = 5)
+# Run Hmisc. This will take about 30 seconds. We will do 5 different
+# iterations, as per our previous examples.
+imputed_large_GSE_data <- aregImpute(formula = impute_colNames,
+                                     data = large_GSE_dataset_df,
+                                     n.impute = 5)
 
 # Now we have a list of imputed values available (set of 5).
-# We will use impute.transcan() function to select a specific set of imputations and
-# Re-insert them into the original data frame with missing values.
-# Here, I arbitrarily selected imputation iteration number 2, out of the 5 available.
-imputed_transcan <- impute.transcan(imputed_large_GSE_data, data = large_GSE_dataset_df, imputation = 2, list.out = TRUE, pr = FALSE, check = FALSE)
+# We will use impute.transcan() function to select a specific set of imputations
+# and Re-insert them into the original data frame with missing values.
+# Here, I selected imputation iteration number 2, out of the 5 available.
+imputed_transcan <- impute.transcan(imputed_large_GSE_data,
+                                    data = large_GSE_dataset_df,
+                                    imputation = 2, list.out = TRUE,
+                                    pr = FALSE, check = FALSE)
 completed_large_GSE_dataset <- as.data.frame(do.call(cbind, imputed_transcan))
-completed_large_GSE_dataset <- completed_large_GSE_dataset[,colnames(large_GSE_dataset_df), drop = FALSE]
+completed_large_GSE_dataset <-
+  completed_large_GSE_dataset[,colnames(large_GSE_dataset_df), drop = FALSE]
 
-# Summary of complete_large_GSM_data and note that the spaces have been filled in. (No more NAs)
+# Summary of complete_large_GSM_data and note that the spaces have been filled
+# in. (No more NAs)
 summary(completed_large_GSE_dataset)
 
 # compare this with the original dataset
 summary(large_GSE_dataset)
+
+# Correlation for completed large GSE dataset:
+cor(completed_large_GSE_dataset)
 
 # This learning unit demonstrated 2 types of data imputation packages available
 # in R, and hopefully provided enough information for everyone to be able to
@@ -240,22 +334,28 @@ summary(large_GSE_dataset)
 # End of Learning Unit.
 
 # ======================
-# 4.  Exercise solutions
-# Congratulations on completing this learning unit for RPR-Data-Imputation. Hope you enjoyed this unit.
+# 5.  Exercise solutions
+# Congratulations on completing this learning unit for RPR-Data-Imputation.
+# Hope you enjoyed this unit.
 # Answers:
 # Exercise 1:
 md.pattern(airquality)
-# Answer:This should show 44 total missing values, and 35 of which have the pattern of just Ozone missing.
+# Answer:This should show 44 total missing values, and 35 of which have the
+# pattern of just Ozone missing.
 #
 # Exercise 2:
-exercise2_impute_data <- mice(airquality, m=5, maxit = 50, method = "pmm")
+exercise2_impute_data <- mice(airquality, m=5, maxit = 50,
+                              method = "pmm", seed = 100)
 exercise2_completed_data <- complete(exercise2_impute_data, 2)
 View(exercise2_completed_data)
-exercise2_fit_data <- with(data = exercise2_impute_data, lm(Wind ~ Temp+Month+Day+Solar.R+Ozone))
+exercise2_fit_data <- with(data = exercise2_impute_data,
+                           lm(Wind ~ Temp+Month+Day+Solar.R+Ozone))
 summary(pool(exercise2_fit_data))
-# Answer: 0.2404003
+# Answer: 0.3180647
 
 # Exercise 3
-# Simply change the subsetting from 1:10 to 11:20 for the code in section 3. Compare the values between summary(large_GSE_dataset) and
-# summary(completed_large_GSE_dataset). The median does not change for GSM112148, which remains as 0.005550.
+# Simply change the subsetting from 1:10 to 11:20 for the code in section 3.
+# Compare the values between summary(large_GSE_dataset) and
+# summary(completed_large_GSE_dataset). The median does not change for
+# GSM112148, which remains as 0.005550.
 # [END]
