@@ -1,16 +1,31 @@
-# ___ID___.R
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# ---------------------------------------------------------------------
+# EDA-MOD-Generalized.R
 #
 # Purpose:  A Bioinformatics Course:
 #              R code accompanying the EDA-MOD-Generalized unit.
 #
-# Version:  0.2
+# Version:  1.0
 #
-# Date:     2017  10    11
+# Date:     2017  12    05
 # Author:   Walter Nelson <walterj.nelson@mail.utoronto.ca>
 #
 # Versions:
 #           0.1    Template copy
 #           0.2    Initial version
+#           1.0    Final version; added OSS licence; reviewed commentary;
+#                  set.seed()
 
 # == DO NOT SIMPLY  source()  THIS FILE! =======================================
 #
@@ -19,10 +34,6 @@
 # going on. That's not how it works ...
 #
 # ==============================================================================
-
-###   NOTE  ###########################################
-### Do not forget to read the accompanying wiki page! #
-#######################################################
 
 # = 1 Poisson regression: data synthesis
 #
@@ -49,6 +60,11 @@
 #       the number of cells remaining after treatment. A possible application
 #       Would be determining the appropriate amount of drug given these
 #       measurements for a new patient.
+#
+#       Poisson regression is relevant as in this case, it is viewed as a
+#       limiting case of the binomial distribution. The probability of a cell
+#       being killed is sufficiently small, thus as the number of cells grows
+#       the distribution becomes more "accurate."
 
 # Assign each drug a letter
 drugs <- 0
@@ -61,6 +77,7 @@ concentrations <- c(0.0, 0.10, 0.25, 0.50, 0.75, 0.90, 1.0)
 
 # Generate the patient data
 patientMatrix <- matrix(nrow=750, ncol=18)
+set.seed(9689130)
 for (i in 1:750) {
     d <- c()
     # Average cell size in micrometers
@@ -75,9 +92,12 @@ for (i in 1:750) {
 
 # Assign 30 patients to each drug. Each drug has its own properties: varying
 # degrees of dependence on each of the independent variables we specified in
-# the patient matrix.
+# the patient matrix. Each of the different variables then goes toward
+# calculating its effect on the starting cell population, calculating the
+# number of cells remaining after an experiment.
 startIndex <- 1
 results <- list()
+set.seed(86914792)
 for (drug in drugs) {
     results[[drug]] <- matrix(nrow=30, ncol=19)
     patients <- patientMatrix[startIndex:(startIndex+29), 1:18]
@@ -97,6 +117,7 @@ for (drug in drugs) {
     results[[drug]][, 2:19] <- patients
 }
 
+# Store the data in a dataframe, one for each of the drugs.
 dataFrames <- list()
 for (drug in drugs) {
     dataFrames[[drug]] <- data.frame(Y=results[[drug]][, 1], avgCellSize=results[[drug]][, 2],
@@ -121,14 +142,25 @@ formula <- as.formula(paste("Y ~ avgCellSize + patientAge + drugConcentration +"
                             paste(xnam, collapse="+")))
 lmFit <- lm(formula, data=dataFrames$A)
 
-# Since we're modeling Y as counts, it would make sense to model this as a
-# Poisson regression, a specific type of generalized linear model. Let's try
-# it and compare the results.
-glmFit <- glm(formula, data=dataFrames$A, family=poisson())
+# As an aside, recall that a GLM is simply a generalized version of an LM.
+# Let's see how to generate the same fit as above, but with a call to glm.
 
-# Compare the ANOVA outputs of the two models.
+glmFit <- glm(formula, data=dataFrames$A, family=gaussian())
+
+# Notice that the summaries are the same.
 summary(lmFit)
 summary(glmFit)
+
+# Since we're modeling Y as counts, it would make sense to model this as a
+# Poisson regression, a specific type of generalized linear model. Let's try
+# it and compare the results, performing a proper GLM fit.
+glmFit <- glm(formula, data=dataFrames$A, family=poisson())
+
+# Compare the ANOVA outputs and plots of the two models.
+summary(lmFit)
+plot(lmFit)
+summary(glmFit)
+plot(glmFit)
 # Notice that we've cut the deviance by nearly 60% by using the proper
 # distribution. OK, but this could be one-off. Let's compare the rest
 # of the 25 fits.
@@ -155,6 +187,27 @@ resultsDF <- data.frame(lmRes=lmDeviances, glmRes=glmDeviances,
 # of deviance).
 resultsDF
 
+# Evaluating heteroscedasticity. One important assumption of linear regression
+# is that the data is homoscedastic, that is, the residuals are not correlated
+# with the predicted values.
+plot(lmFit)
+# The ideal plot is a straight red line. This would imply no correlation bewteen
+# the residuals and the fitted values. An important fact to consider is that we
+# simply don't have many measurements for fitted values that are outliers - say,
+# below 72.5 and higher than 86. Therefore, the most important consideration is
+# that our data is relatively homoscedastic in the range [72.5, 86] - the red line
+# should be flat there. Compare that plot to the glmFit:
+plot(glmFit)
+# Here, the most important consideration is that the red line is relatively flat
+# in the domain [4.3, 4.45], because most of our data points that aren't outliers
+# occur there.
+# The scale-location plots can be used in a similar way.
+
+# Let's visualize our model. First, let's plot our outcome variable.
+hist(dataFrames$Y)
+# Notice that this kind of looks like a Poisson distribution where lambda = 1,
+# shifted to the right.
+
 # = 3 Mixed-effects models: data synthesis
 #
 #       Mixed-effects models are a powerful tool which combine known
@@ -173,6 +226,7 @@ averageFemaleGrowths <- c(10, 3.8, 0.1, 0.1)
 
 heightMatrix <- matrix(nrow=1000, ncol=3)
 # Generate 5 timepoints for each of 100 males
+set.seed(951739104)
 for (i in 1:100) {
     growthRate <- rnorm(1, mean=1, sd=.2)
     for (m in 1:5) {
@@ -193,6 +247,7 @@ for (i in 1:100) {
     }
 }
 # Females
+set.seed(529493)
 for (i in 1:100) {
     growthRate <- rnorm(1, mean=1, sd=.2)
     for (m in 1:5) {
@@ -262,5 +317,12 @@ coef(basicModel)
 # We can also see that the prediction as a function of age differs based on
 # gender (i.e., a random slope).
 coef(betterModel)
+
+# Saving models. As a side note, models can be saved easily with the following
+# command...
+save(basicModel, file = "/tmp/basicModel.rda")
+# ... and then loaded again using the following command.
+basicModel <- NULL
+load("/tmp/basicModel.rda")
 
 # [END]
