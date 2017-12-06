@@ -1,53 +1,47 @@
 ---
 title: "APB-ML-Measuring_performance"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-<!-- ## R Markdown -->
+# Introduction
 
-<!-- This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. -->
+This is the documentation for how to interpret the results from `APB-ML-Measuring_performance/APB-ML-Measuring_performance.R`.
 
-<!-- When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this: -->
-
-<!-- ```{r cars}
-summary(cars)
-``` -->
-
-<!-- ## Including Plots -->
-
-<!-- You can also embed plots, for example: -->
-
-<!-- ```{r pressure, echo=FALSE} -->
-<!-- plot(pressure) -->
-<!-- ``` -->
-
-<!-- Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot. -->
-
-
-# How to use this guide
-
-Use this as a documentation for how to interpret the results from `APB-ML-Measuring_performance.R`.
-
-To evaluate machine learning algorithms, you really only need 3 things:
+Our goal is to evaluate a model's performance. To realize this goal, we need 3 things:
 
 1. The dataset (obviously)
-2. Test options
+2. Method for testing
 3. Evaluation metrics
 
-I will explain these three things in detail below.
+Lets explore them in detail below.
 
 ## Requirements
 ```
 install.packages(c("mlbench", "caret", "pROC", "klaR", "MLmetrics"), dependencies=TRUE)
 ```
 
-## Test options
+##
+```{r}
+library(caret)
+library(ggplot2)
+library(plotROC)
+library(mlbench)
+```
+
+We will primarily be using the `caret` library for computing the metrics for both classification and regression. All the code in this unit is based on the `caret` library, and you can find more details in this [reference](http://topepo.github.io/caret/measuring-performance.html).
+
+# The Dataset
+Hopefully you have a clean, balanced, and post-processed dataset. However, it's not required for this unit, since we will use simple synthetic datasets as a proof of concept. However, to use what you learn from this unit on your own dataset, then please go over the units that cover data preprocessing.
+
+# Method for testing
 - **Split data** into training, test, and validation sets. Use your training set to train the model, use your validation set to fine tune the hyper-parameters, and then measure your model's predictive performance on the test set.
 
 - **K-fold cross validation**: partition data into k subsets, alliteratively leave one subset out as test set, use the rest for training
@@ -56,13 +50,12 @@ install.packages(c("mlbench", "caret", "pROC", "klaR", "MLmetrics"), dependencie
 
 *If you are unsure which test options to use, I recommend start by using a 10-fold cross validation with multiple runs.*
 
+## Which method to use?
 
-## How to choose a test option
+### # Randomness
+The data we work with is not perfect, that means it contains a certain amount of noise, which can be from some random process, a.k.a a **stochastic process**. Furthermore, most ML algorithms themselves use some randomness in one way or another. Hence, randomness is everywhere! However, this does not mean that the predictions are going to be random, rather it implies that there is **variance** in the predictions. Choosing the right method for testing is all about accounting for this variance.
 
-### Understand randomness
-The key concept to understand is randomness, a.k.a **stochasticity**. Most ML algorithms use some randomness in one way or another. Either the algorithm itself is random, such as stochastic gradient descent, or there is randomness within the training dataset. This does not mean that the predictions are going to be random, it implies that is **variance** in the predictions. Choosing the right test option is all about accounting for this variance.
-
-### Why not just train and test on the same dataset?
+#### Why not just train and test on the same dataset?
 Lets say you trained a model on a dataset, then measured its accuracy on the same dataset. You get an accuracy of 95%, that's the true accuracy of the algorithm on the dataset, right? Not exactly...
 
 What you did is over-fit on the dataset for training, and have no idea how well your model can generalize on **new** data. 
@@ -80,29 +73,7 @@ Since we actually want to predict on new data, this is not a viable approach.
 
 You take the dataset, and split it into a training and a test set (and maybe a third validation set for hyper-parameter search, but we won't cover that here).
 
-<!-- Give an example with R code. -->
 For example, you randomly shuffle the entire dataset, then use 2/3 as the training set and 1/3 as the test set. The algorithm runs on the training set, then the trained model is evaluated on the test set, and you get something like 85% accuracy.
-
-```{r, echo=TRUE, message=FALSE}
-# load the libraries
-library(caret)
-library(klaR)
-# load the iris dataset
-data(iris)
-# define an 80%/20% train/test split of the dataset
-split=0.80
-trainIndex <- createDataPartition(iris$Species, p=split, list=FALSE)
-data_train <- iris[ trainIndex,]
-data_test <- iris[-trainIndex,]
-# train a naive bayes model
-model <- NaiveBayes(Species~., data=data_train)
-# make predictions
-x_test <- data_test[,1:4]
-y_test <- data_test[,5]
-predictions <- predict(model, x_test)
-# summarize results
-confusionMatrix(predictions$class, y_test)
-```
 
 This is a fast and easy approach when you have a lot of data. When the dataset is very big, splitting the data can actually yield a fairly accurate measure of the actual performance of the algorithm.
 
@@ -141,36 +112,8 @@ Although CV does provide an unbiased estimate on the model's accuracy, it does n
 #### How do we account for the variance in the algorithm itself?
 Run CV multiple times and take the average and standard deviation of the accuracies. The average gives us an estimate of the algorithm's *performance*, and the standard deviation helps us understand the *robustness* of the algorithm on the dataset.
 
-For example,
-```{r, echo=TRUE, message=FALSE}
-# load the library
-library(caret)
-# load the iris dataset
-data(iris)
-# define training control
-train_control <- trainControl(method="repeatedcv", number=10, repeats=3)
-# train the model
-model <- train(Species~., data=iris, trControl=train_control, method="nb")
-# summarize results
-print(model)
-```
-
 ### Bootstrap resampling
 This approach involves randomly sampling from the dataset (with replacement) against which to evaluate the model.
-
-For example, randomly sample the dataset 10 times
-```{r, echo=TRUE, message=FALSE}
-# load the library
-library(caret)
-# load the iris dataset
-data(iris)
-# define training control
-train_control <- trainControl(method="boot", number=100)
-# train the model
-model <- train(Species~., data=iris, trControl=train_control, method="nb")
-# summarize results
-print(model)
-```
 
 ### How do we compare different algorithms?
 
@@ -181,62 +124,49 @@ We can use a statistical significance test (like the U test) to compare differen
 
 If we run k-fold CV with multiple runs using different ML algorithms, then each algorithm produces a list of numbers. We summarize these numbers with a statistic (such as mean and standard deviation). A statistical significance test quantifies how likely these different sets of numbers are drawn from the same population. If this quantity (p-value) is above some threshold, then the difference in the statistics between each algorithm are insignificant.
 
-<!-- When in doubt, use k-fold cross validation (k=10) and use multiple runs of k-fold cross validation with statistical significance tests when you want to meaningfully compare algorithms on your dataset. -->
+<!-- =========================================================================== -->
 
+# Evaluation metrics (Error metircs)
 
-## Error metrics
-
-Alright! Suppose you trained a model using k-fold cross validation with multiple runs, and you believe it can make good predictions because you got an accuracy of 90%. How do you decide whether it is a **good enough** model to **solve your problem**. Classification accuracy alone is typically not enough information to make this decision. We need better metrics that can explain the performance of a model, more importantly, discriminate among different models.
+Suppose you trained a model using k-fold cross validation with multiple runs, and you believe it can make good predictions because you got an accuracy of 90%. How do you decide whether it is a **good enough** model to **solve your problem**. Classification accuracy alone is typically not enough information to make this decision. We need better metrics that can explain the performance of a model, more importantly, discriminate among different models.
 
 Error metrics for classfication and regression models are different because they produce nominal or binary outputs and continuous outputs respectively.
 
 #### Note: The Difference Between Training Metrics and Evaluation Metrics
 Sometimes the metric being used by the loss function during training is different from the evaluation metric. This often happens when we are trying to use our model for a different task than it was designed for. For example, we might train a logistic regression model on for a genetic test by minimizing its Log loss, and then directly use it to predict on patients. However, what's the model's ability to identify true positives vs false negatives? How much do we care about false negatives? There should be a way to answer those questions.
 
-The better way is to train the model using the metric that suits for your problem. However, some metrics this is hard to do. For example, it's hard to directly optimize for the AUC. Always think about the right evaluation metric, and see if it's possible to use it directly to train your model. 
+The better way is to train the model using the metric that suits your problem. However, some metrics is difficult to work with. For example, it's hard to directly optimize for the AUC. Always think about the right evaluation metric, and see if it's possible to use it directly to train your model. 
 
-### Classification metrics
+<!-- =========================================================================== -->
 
-#### Accuracy and Kappa
+## Classification metrics
+
+First lets generate some test data for this section, which we will use to evaluate a simple "binary classifier". We generate a dataset with skewed classes, with a 20,80-split
+
+```{r}
+ggplot(test_set, aes(x = Class1)) +
+  geom_histogram(binwidth = .05) +
+  facet_wrap(~ obs) +
+  xlab("Distribution of Probabilities for Class #1")
+```
+
+[Reference: caret documentation](http://topepo.github.io/caret/measuring-performance.html)
+
+### Accuracy and Kappa
 **Accuracy** = # correct predictions / total # of predictions
 
 **Kappa** (Cohen's Kappa) is essentially a measure of how well the classifier performed as compared to how well it would have performed simply by chance. This is a helpful measure for datasets that have imbalanced classes.
 
-#### Confusion Matrix (not a metric)
-A confusion matrix is an N X N matrix, where N is the number of classes being predicted. For a binary classifier, the matrix would be 2 x 2. Although this matrix is not a metric, it helps us organize and see the important results from our predictions.
-
-Example: First lets generate some data and evaluate a simple "binary classifier". We generate a dataset with skewed classes, where probability of Class1 is 10% and Class2 is 90%.
-```{r, echo=TRUE, message=FALSE}
-# Randomly sample from a PMF where Pr(Class1) = 0.2 and Pr(Class2) = 0.8
-true_class <- factor(sample(
-  paste0("Class", 1:2),
-  size = 3000,
-  prob = c(.1, .9),
-  replace = TRUE
-))
-true_class <- sort(true_class)
-# Sample from a beta distribution for the probabilities produced by a "model"
-class1_probs <- rbeta(sum(true_class == "Class1"), 4, 1)
-class2_probs <- rbeta(sum(true_class == "Class2"), 1, 2.5)
-test_set <- data.frame(obs = true_class,
-                       Class1 = c(class1_probs, class2_probs))
-test_set$Class2 <- 1 - test_set$Class1
-test_set$pred <-
-  factor(ifelse(test_set$Class1 >= .5, "Class1", "Class2"))
-
-# Plot the distribution of Class 1 probabilities
-ggplot(test_set, aes(x = Class1)) +
-  geom_histogram(binwidth = .05) +
-  facet_wrap(~ obs) +
-  xlab("Probability of Class #1")
-```
+[Reference](https://en.wikipedia.org/wiki/Cohen%27s_kappa)
 
 ```{r}
-confusionMatrix(data = test_set$pred, reference = test_set$obs)
+postResample(pred = test_set$pred, obs = test_set$obs)
 ```
 
-Noice that the accuracy is ~84% whereas the No Information Rate is 89%, which is basically the same as the 90% of our majority class (class2). The Kappa score is the normalized version, and reports a low accuracy of 48%.
-There are a lot of terms and statistics presented here, so lets define some of them...
+### Confusion Matrix (not a metric)
+A confusion matrix is an N X N matrix, where N is the number of classes being predicted. For a binary classifier, the matrix would be 2 x 2. Although this matrix is not a metric, it helps us organize and see the important results from our predictions.
+
+There are a lot of terms and statistics involved here, so lets define some of them...
 
 Definition of key terms:
 
@@ -269,14 +199,60 @@ PRED     -----------
 - *Detection Rate*: How likely is it to detect a true positive?
 - *Detection Prevalence*: Overall, how often is it wrong?
 
-Lets explore precision and recall in more detail below.
-
-#### Precision/Recall and F1 Score
-
-We can get precision recall metrics from the `confusionMatrix()` method as well.
 ```{r}
-confusionMatrix(data = test_set$pred, reference = test_set$obs, mode = "prec_recall")
+# Lets see what a confusion matrix looks like, as well as the accompanying statisics.
+confusionMatrix(data = test_set$pred, reference = test_set$obs)
 ```
+
+Noice that the accuracy is ~84% whereas the No Information Rate is 89%, which is basically the same as the 80% of our majority class (class2). The Kappa score reports a low accuracy of ~54%, which makes sense due to the class imbalance inherent in the dataset.
+
+
+### Log-Loss
+Although we use Log-Loss here for a binary classifier, it can generalize to multiple classes.  Log-Loss evaluates the probabilities produced by classifiers. The probabilities can be viewed as a bayesian posterior probability of your model's predictions given the data observed. For example, if the true label is `1`, but the classifier thinks it should be `0` because it reports a probability `0.48` for `1`, then it is really not making such a big mistake because it is simply not that confident about its prediction.
+
+Another relationship to Log-Loss is information. The Log-Loss is the cross entropy between the destribution of the true labels and the predictions. By minimizing the cross entropy, we maximize the accuracy of the classifier.
+
+```{r}
+mnLogLoss(test_set, lev = levels(test_set$obs))
+```
+Here the `logLoss` score is pretty good with a value of ~`0.4`. But remember, our data is highly skewed! A perfect model would have a `logLoss=0`.
+
+### AUC (Area Under ROC Curve)
+
+The AUC is an error metric for binary classifiers, while the ROC (Receiver operating characteristic) is a plot that visualizes the performance of a classifier over all possible thresholds. The true positive rate (y-axis) is plotted against the false positive rate (x-axis) as you vary the threshold for assigning observations to a given class.
+
+The AUC is a measure of the model's ability to discriminate between two classes. An area of 1.0 represents a model predicted every test sample correctly. An area of 0.5 means the model is as a good as a fair coin.
+
+How to plot a ROC
+
+```{r, message=FALSE, warning=FALSE}
+ggplot(test_set, aes(d = obs, m = Class2)) +
+  geom_roc(n.cuts = 5) + style_roc() + 
+  geom_rocci(sig.level = .01)
+```
+
+[Reference: plotROC documentaion](https://cran.r-project.org/web/packages/plotROC/vignettes/examples.html)
+
+If you simply want a quick summary of the AUC then use caret
+
+```{r}
+# Somethings to note:
+#    - you can specify which levels to use in the "lev" parameter
+#    - so if you want to set the true class to Class2, use:
+#      twoClassSummary(test_set, lev = c("Class2", "Class1"))
+twoClassSummary(test_set, lev = levels(test_set$obs))
+```
+
+This plot shows us that:
+
+- the true positive rate ~0.9 at 0.4 threshold, and a corresponding ~0.15 false positive rate
+- the plot looks pretty good because at 0.1 FP, the TP approaches 0.9!
+- the numbers on the lines are the thresholds
+- the size of the grey boxes are confidence regions for both the Y and X axis at selected thresholds, calculated by the Clopper and Pearson (1934) exact method.
+
+[Reference](https://en.wikipedia.org/wiki/Receiver_operating_characteristic)
+
+### Precision/Recall and F1 Score
 
 Precision and recall are actually two different metrics. But they are often used together. **Precision** answers the question, "Out of the samples that the model predicted to be positive, how many are truly positive?" The **recall** answers the question, "Out of all the samples that are truly positive, how many can be detected by the model?"
 
@@ -291,96 +267,70 @@ F1 = 2( (precision * recall) / (precision + recall))
 Therefore, the F1 score will be small if either precision ore recall is small.
 
 ```{r}
-# precision-recall values and the area under the precision-recall curve
+# Caret supports Precision/Recall as well
+# Note: the AUC reported is the AUC under the Precision/Recall curve, and NOT
+# the ROC curve!
 prSummary(test_set, lev = levels(test_set$obs))
 ```
-Here, the AUC is actually the area under the Precision vs Recall curve, and not the ROC.
 
-#### AUC (Area Under ROC Curve)
-
-The AUC is an error metric for binary classifiers, while the ROC is a plot that visualizes the performance of a classifier over all possible thresholds. The true positive rate (y-axis) is plotted against the false positive rate (x-axis) as you vary the threshold for assigning observations to a given class.
-
-The AUC is a measure of the model's ability to discriminate between two classes. An area of 1.0 represents a model predicted every test sample correctly. An area of 0.5 means the model is as a good as a fair coin.
-
+We can get precision recall metrics from the `confusionMatrix()` method as well. With more the values in a confusion matrix, we get a fuller picture.
 ```{r}
-# Note that the ROC score should really be the AUC score
-twoClassSummary(test_set, lev = levels(test_set$obs))
+confusionMatrix(data = test_set$pred, reference = test_set$obs, mode = "prec_recall")
 ```
 
-How to plot a ROC
+<!-- =========================================================================== -->
 
-```{r}
-# load libraries
-library(caret)
-library(plotROC)
+## Regression metrics
 
-# Use ggplot2 and plotROC (an extension to ggplot2 for ROC)
-ggplot(test_set, aes(d = obs, m = Class2)) + geom_roc(n.cuts = 5) + style_roc() + geom_rocci(sig.level = .01)
+Since the output of regression models is continuous, the metrics are different from classifiers. The go to metrics are RMSE and R-squared. Let's go over both!
 
-```
-
-This plot shows us that:
-- the true positive rate = ~0.8 at 0.5 threshold, and a corresponding ~0.07 false positive rate
-- this means that the classifier is pretty good
-- the numbers on the lines are the thresholds
-- the size of the grey boxes are confidence regions for both the Y and X axis at selected thresholds, calculated by the Clopper and Pearson (1934) exact method.
-
-#### Log-loss
-Log-loss is more prevalent for multiclass classifiers. Log-loss evaluates the probabilities produced by classifiers. The probabilities can be viewed as a bayesian posterior probability of your model's predictions given the data observed. For example, if the true label is `1`, but the classifier thinks it should be `0` with a probability of `0.51`, then it is really not making such a big mistake because it is simply not that confident about its prediction.
-
-Another relationship to log-loss is information. The log-loss is the cross entropy between the destribution of the true labels and the predictions. By minimizing the cross entropy, we maximize the accuracy of the classifier.
-
-```{r}
-# compute the Log Loss on the test set
-mnLogLoss(test_set, lev = levels(test_set$obs))
-```
-
-### Regression metrics
-
-Since the output of regression models is continuous, the go to metrics are different than classifiers. The go to metrics are RMSE and R-squared. Let's go over both!
-
-#### Root Mean Squared Error (RMSE)
-RMSE assumes that the error are unbiased and follow a normal distribution. RMSE is the average deviation from of the predictions from the truths.
+### Root Mean Squared Error (RMSE)
+This is the most typical error metric for regression.
+RMSE assumes that the error in the predictions follows a normal distribution, and that there is no overfitting. Intuitively, RMSE is an average over the sum of the delta between the prediction and truth.
 
 $$
 RMSE = \sqrt\frac{\sum_{k=1}^n(Predicted_i - Actual_i)^2}{N}
 $$
 
-Key things to remember:
+Key points to remember:
+- RMSE is the result of squared error, so large deviations from the truth are penalized more
+- But because of this, RMSE is susceptible to outliers, especially in smaller datasets
+- We don't have to deal with negative errors
+- We don't have to deal with absolute values which is used by mean absolute error
+- More reliable for larger datasets
+- RMSE is a bit harder to interpret than mean absolute error
 
-- The power of ‘square root’  empowers this metric to show large number deviations.
-- The ‘squared’ nature of this metric helps to deliver more robust results which prevents cancelling the positive and negative error values. In other words, this metric aptly displays the plausible magnitude of error term.
-- It avoids the use of absolute error values which is highly undesirable in mathematical calculations.
-When we have more samples, reconstructing the error distribution using RMSE is considered to be more reliable.
-- RMSE is highly affected by outlier values. Hence, make sure you’ve removed outliers from your data set prior to using this metric.
-- As compared to mean absolute error, RMSE gives higher weightage and punishes large errors.
+[For more information and reference](https://en.wikipedia.org/wiki/Root-mean-square_deviation)
 
-#### R-squared
-R-squared provides a “goodness of fit” measure for the predictions to the observations. This is a value between 0 and 1 for no-fit and perfect fit respectively.
+### R-squared
 
+R-squared is a measure of how well the model fit to the dataset based on the
+predictions and the ground truth. R-squared is greater than or equal to 0 and less than or equal to 1, which represents no fit at all and perfect fit respectively.
 
-Example: linear regression with 5-fold CV:
+Notice that using `RMSE` metric in the caret training function gives us both RMSE and Rsquared results.
+
+[For more information and reference](https://en.wikipedia.org/wiki/Coefficient_of_determination)
+
+### Mean average error (MAE)
+MAE measures the average of the errors in a set of predictions, and it avoids negative errors by applying an absolute value. Since there is no square, all errors in the test data are weighted equally.
+
+$$
+MAE = \frac{\sum_{k=1}^n  |Predicted_i - Actual_i|}{N}
+$$
+
+[For more information and reference](https://en.wikipedia.org/wiki/Mean_absolute_error)
+
+<!-- Get all three with one function! -->
 ```{r}
-# load libraries
-library(caret)
-# load data
-data(longley)
-# prepare resampling method
-control <- trainControl(method="cv", number=5)
-set.seed(7)
-fit <- train(Employed~., data=longley, method="lm", metric="RMSE", trControl=control)
-# display results
-print(fit)
+postResample(pred = bh_pred, obs = bh_te$medv)
 ```
 
-Notice that using `RMSE` metric gives us both RMSE and Rsquared results.
 
-
-## Summary
+# Summary
 
 - the metric you select to optimize your model is important
 - the metric you use to evaluate your model is important
 - use measure appropriate for **your problem**
 - accuracy is often not sufficent/appropriate
 - AUC/ROC is pretty popular, but only appropriate for binary classes
-- only accuracy generalizes to >2 classes!
+- only accuracy generalizes to more than 2 classes!
