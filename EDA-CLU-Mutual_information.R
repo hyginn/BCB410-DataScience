@@ -113,10 +113,13 @@ cal_dMI <- function(data_frame) {
   # Create distance matrix
   dist <- matrix(0, nrow(data_frame), nrow(data_frame))
 
+  # Unpack the data frame
+  data <- data.matrix(data_frame)
+
   # Use MI_dist() to calculate pair-wise MI distance
   for (i in 1:nrow(data_frame)) {
     for (j in 1:i) {
-      dist[i, j] <- MI_dist(unlist(data_frame[i,]), unlist(data_frame[j,]))
+      dist[i, j] <- MI_dist(data[i,], data[j,])
     }
   }
 
@@ -167,8 +170,8 @@ load("data/myGeneFeatures.RData")
 GOTimeData <- myGeneFeatures[5:17] * 25
 
 # Calculate the Mutual Information distance between each data point
-# WARN: THIS CAN BE SLOW
-cat("Clustering on GO time data...(this will be slow)")
+# WARN: THIS CAN TAKE SOME TIME
+cat("Clustering on GO time data...(this will take some time)")
 dMI <- cal_dMI(GOTimeData)
 
 # Does hclust, agnes, diana 3 types of hierarchy based clustering
@@ -186,8 +189,8 @@ plot(diana(dMI), which.plots=2)
 GOBPData <- myGeneFeatures[18:22] * 10
 
 # Calculate the Mutual Information distance between each data point
-# WARN: THIS CAN BE SLOW
-cat("Clustering on GO Biological Process data...(this will be slow)")
+# WARN: THIS CAN TAKE SOME TIME
+cat("Clustering on GO Biological Process data...(this will take some time)")
 dMI <- cal_dMI(GOBPData)
 
 # Does hclust, agnes, diana 3 types of hierarchy based clustering
