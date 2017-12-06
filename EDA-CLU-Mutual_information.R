@@ -5,10 +5,11 @@
 #
 # Version:  1.1
 #
-# Date:     2017  10  15
+# Date:     2017  12  06
 # Author:   Dominick Han (dominick.han@mail.utoronto.ca)
 #
 # Versions:
+#           1.2    (Revised unit)
 #           1.1    (Fixing up the comments while writing Wiki)
 #           1.0    (Finishing, added comments)
 #           0.6    (Added GO BP data (does not perform well))
@@ -146,6 +147,8 @@ cat("Clustering on synthetic data...")
 dMI <- cal_dMI(synth_data)
 attr(dMI, "Labels") <- labels
 # Does hclust, agnes, diana 3 types of hierarchy based clustering
+# Note: Here readline() is to prompt user for input
+#     So we display plots one by one
 readline(prompt="Press <Enter> to show synthetic data hclust...")
 plot(hclust(dMI))
 readline(prompt="Press <Enter> to show synthetic data agnes...")
@@ -159,6 +162,7 @@ plot(diana(dMI), which.plots=2)
 # Get data from our GO dataset
 load("data/myGeneFeatures.RData")
 
+# GO time series data
 # Since GO data is only floating points, we need to multiply it to enlarge the data then round it to integer for our MI calculation
 GOTimeData <- myGeneFeatures[5:17] * 25
 
@@ -177,6 +181,7 @@ readline(prompt="Press <Enter> to show GO time data diana...(zoom to see details
 plot(diana(dMI), which.plots=2)
 
 
+# GO BP Terms data (After dimensional reduction)
 # Since GO data is only floating points, we need to multiply it to enlarge the data then round it to integer for our MI calculation
 GOBPData <- myGeneFeatures[18:22] * 10
 
