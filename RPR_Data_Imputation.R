@@ -3,7 +3,7 @@
 # Purpose:  A Bioinformatics Course:
 #              R code accompanying the RPR-Data Imputation unit.
 #
-# Version:  0.3
+# Version:  0.4
 #
 # Date:     2017  10  06
 # Author:   Greg Huang
@@ -12,11 +12,14 @@
 #           0.1    First draft of RPR-Data Imputation learning unit.
 #           0.2    Final version for review
 #           0.3    First edited version after code review
+#           0.4    Final version after code review
 #
 # TODO:
-# 2. Use MICE to impute data on a R 'datasets' package dataset, 'trees'.
-# 2. Use MICE to impute data on a small GSE4987 dataset with 20 observations.
-# 3. Use Hmisc to impute data on a large GSE4987 datset with 6228 observations.
+# 1. Build a synthetic data set to demonstrate properties of missingness,
+#    and list-wise deletion/Complete Case Analysis(CCA)
+# 2. Use MICE to impute data on the created synthetic dataset
+# 3. Use MICE to impute data on a small GSE4987 dataset with 20 observations.
+# 4. Use Hmisc to impute data on a large GSE4987 datset with 6228 observations.
 #
 # == DO NOT SIMPLY  source()  THIS FILE! =======================================
 #
@@ -26,15 +29,26 @@
 #
 # ==============================================================================
 # Sections:
-# 0. Load libraries                                          Line 36
-# 1. Intro/Exploration of missingness                        Line 93
-# 2. Running MICE on a small synthetic data set              Line 146
-# 3. Running MICE on a small subset of the GSE4987 Dataset   Line 211
-# 4. Running Hmisc's aregImpute() on a large GSE4987 subset  Line 276
-# 5. Exercise solutions                                      Line 337
-
+# 0. Load libraries                                          Line 51
+# 1. Intro/Exploration of missingness                        Line 107
+# 2. Running MICE on a small synthetic data set              Line 163
+# 3. Running MICE on a small subset of the GSE4987 Dataset   Line 234
+# 4. Running Hmisc's aregImpute() on a large GSE4987 subset  Line 298
+# 5. Exercise solutions                                      Line 364
+#
+# ==============================================================================
+# Important Note:
+# The code references two main sources. I'll label them here as Source A and B
+# to avoid clogging up the comments with the code.
+# Source A: Analytics Vidhya's Tutorial on 5 R packages used for imputation
+# URL: https://www.analyticsvidhya.com/blog/2016/03/tutorial-powerful-packages-
+#      imputing-missing-values/
+#
+# Source B: R Blogger's Imputing Missing data with Mice
+# URL: https://www.r-bloggers.com/imputing-missing-data-with-r-mice-package/
+#
+# ==============================================================================
 # 0.  Load required packages
-
 source("https://bioconductor.org/biocLite.R")
 
 if (!require(readr, quietly = TRUE)) {
@@ -102,7 +116,7 @@ ct_D <- c(5,4.9,4.8,4.7,4.6,4.5,4.3,4.2,4.1,4)
 synth_df <- data.frame(ct_A,ct_B,ct_C,ct_D)
 
 # Check for correlation in between variables in this data frame
-# We see some pretty good high correlation r values here.
+# We see some pretty high correlation r values here.
 cor(synth_df)
 
 # I will not use this for MCAR demo because MCAR very rarely happens and
@@ -112,6 +126,7 @@ cor(synth_df)
 #          from the observed data
 # Here we use random deletion and remove 5% of the data, using the prodNA()
 # function found in the missForest package.
+# Learned about prodNA() from Source A; code inspired by it.
 set.seed(100)
 df_MAR <- prodNA(synth_df, noNA = 0.05)
 View(df_MAR)
@@ -119,16 +134,18 @@ View(df_MAR)
 # Now, with missing values in the data frame, cor() wouldn't work anymore.
 # There is actually a complete-case analysis tool in cor(), which is
 # complete.obs (listwise deletion)
+# Learned about CCA in cor() from Quick-R's 'Correlations' page, URL:
+# https://www.statmethods.net/stats/correlations.html
 cor(df_MAR, use = "complete.obs")
 
 # Compare this to the one we had with the full data. Now it looks like all
 # variables are strongly correlated to one another. Probably wouldn't want
-# that!
+# that! We'll revisit them later in the unit.
 
 # Let's do a massive loss of data this time: 30% loss.
 set.seed(100)
 df_MAR_thirty <- prodNA(synth_df, noNA = 0.3)
-# Obviously, the results with CCA is terrible.
+# Obviously, the results with CCA is pretty bad, too.
 cor(df_MAR_thirty, use = "complete.obs")
 
 
@@ -153,12 +170,13 @@ cor(df_MNAR, use = "complete.obs")
 # values, as mice does not take it. In this example, there are none, so we
 # don't need to delete any column of data.
 
-# Obtain a summary of the dataset, now with 10% values removed.
+# Just to review, obtain a summary of the dataset to see 2 NAs.
 summary(df_MAR)
 
 # Now we are ready to impute our missing data.
 # First, we'd like to see if there's a pattern with the missing data.
 # Wiki demomnstrates how to read the resulting table.
+# Using md.pattern() is inspired by Source A.
 md.pattern(df_MAR)
 
 # Now, we use mice to impute the missing spots.
@@ -170,6 +188,8 @@ md.pattern(df_MAR)
 # method = method for imputing. 'pmm' stands for "predictive mean matching.
 # there are other methods available.
 # we can set a seed for mice functions as well.
+# Formatting of imputed_data and complete() is based on both Source A and
+# Source B.
 imputed_data <- mice(df_MAR, m=5, maxit = 50,
                      method = "pmm", seed = 100)
 
@@ -182,27 +202,30 @@ summary(imputed_data)
 # we imputed. Here, I selected set #1.
 df_MAR_completed <- complete(imputed_data, 1)
 
-# Now let's have a look at the original correlation matrix:
-cor(synth_df)
+# See that the missing points have indeed been imputed:
+summary(df_MAR_completed)
 
-# and our imputed one after MAR:
-cor(df_MAR_completed)
+# Now let's compare our correlation matrices:
+cor(synth_df)                         #orignal
+cor(df_MAR_completed)                 #imputed after MAR
+# Pretty similar, and much better than our CCA results!
 
-# Pretty similar, and much better than CCA!
-
-# Additionally, we can use some plots to have visualizations of our imputed data.
-# The pink icons are the imputed numbers. Here we can see that the imputed numbers
-# are rougly in line with the existing data.
+# Additionally, we can use some plots to visualize our imputed data.
+# The pink icons are the imputed numbers. Here we can see that the imputed
+# numbers are rougly in line with the existing data.
+# Idea of incorporating an xyplot is inspired by Source B.
 xyplot(imputed_data, ct_B ~ ct_A + ct_C + ct_D, pch=2, cex = 0.5)
 
 # It is also possible to take the 5 sets generated and fit a linear model to
 # the data. Using mice, we use the with() function to fit the data, and pool()
 # method the pool results together.
+# Learned how to fit my data with both Source A and B.
 fit <- with(data = imputed_data, lm(ct_B ~ ct_A + ct_C + ct_D))
 summary(pool(fit))
 
-# On another note, how does mice perform as more and more data is lost?  Let's go
-# with our 30% loss case. You can see that the imputation isn't as great anymore.
+# On another note, how does mice perform as more and more data is lost? Let's
+# go with our 30% loss case. You can see that the imputation isn't as great
+# anymore.
 imputed_data_thirty <- mice(df_MAR_thirty, m=5, maxit = 50,
                      method = "pmm", seed = 100)
 df_MAR_thirty_completed <- complete(imputed_data_thirty,2)
@@ -211,7 +234,7 @@ cor(df_MAR_thirty_completed)
 # 3.  MICE example on the small GSE4987 data subset.
 # Now we will apply the same process to the GSE4987 yeast cell cycle dataset.
 # Before we get to the GSE examples, we'll load GSE4987 from GEO.
-# Adapted from dataPrep.R
+# Adapted from Dr. Steipe's dataPrep.R
 GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, AnnotGPL=TRUE)
 if (length(GSE4987) > 1) {
   idx <- grep("GPL1914", attr(GSE4987, "names"))
@@ -269,9 +292,8 @@ cor(complete_snippet_GSE_data)
 cor(snippet_GSE_dataset)           #original
 cor(complete_snippet_GSE_data)     #experimented
 # Well, it's not too bad. Generally speaking, the matrix does not look too
-# far off. But considering that this is a larger data set with more values
-# missing, mice performed well enough and did not show drastic deviations
-# from the original.
+# far off. The correlation matrix did not deviate too far from the original
+# matrix before we randomly deleted elements.
 
 # 4.  Hmisc example on large GSE4987 dataset.
 # The Hmisc package is better at handling large datasets. In our case where the
@@ -292,6 +314,10 @@ summary(large_GSE_dataset)
 # actually already NA's littered throughout each column / sample. Here we run
 # the Hmisc imputation method to fill in those blanks. The next three lines
 # set up the "formula" as well as preparing the data for the Hmisc function.
+# Formatting of this is helped by Source A and this Stack Overflow question,
+# URL: https://stats.stackexchange.com/questions/117383/impute-missing-values
+#      -using-aregimpute
+# Question asked by user 'Gurkenhals'.
 colNames <- (sampleNames(GSE4987)[1:10])
 impute_colNames <- as.formula(c("~", paste(colNames, collapse = '+')))
 large_GSE_dataset_df <- as.data.frame.matrix(large_GSE_dataset)
@@ -299,9 +325,9 @@ large_GSE_dataset_df <- as.data.frame.matrix(large_GSE_dataset)
 col_for_xyplot <- sampleNames(GSE4987)[2:10]
 xy_formula <- as.formula(c("~", paste(col_for_xyplot, collapse = '+')))
 
-
-# Run Hmisc. This will take about 30 seconds. We will do 5 different
+# Run Hmisc. This will take some time (30s - 1 min). We will do 5 different
 # iterations, as per our previous examples.
+# Code based on R documentation for Hmisc and Source A.
 imputed_large_GSE_data <- aregImpute(formula = impute_colNames,
                                      data = large_GSE_dataset_df,
                                      n.impute = 5)
@@ -310,6 +336,7 @@ imputed_large_GSE_data <- aregImpute(formula = impute_colNames,
 # We will use impute.transcan() function to select a specific set of imputations
 # and Re-insert them into the original data frame with missing values.
 # Here, I selected imputation iteration number 2, out of the 5 available.
+# impute.transcan() and code to complete imputation is based on Source A.
 imputed_transcan <- impute.transcan(imputed_large_GSE_data,
                                     data = large_GSE_dataset_df,
                                     imputation = 2, list.out = TRUE,
