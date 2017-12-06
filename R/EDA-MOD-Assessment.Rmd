@@ -1,7 +1,7 @@
 ---
 title: "EDA-MOD-Assessment"
 author: Adriel Martinez (adriel.martinez@mail.utoronto.ca)
-output: html_document
+output: html_notebook
 ---
 
 NOTE: If you want to go through this notebook, clear all the code output. Click the gear icon beside preview and click _Clear All Output_
@@ -20,11 +20,19 @@ plot(cars)
 
 We will be using a couple of libraries.
 
+`ggplot2` is a plotting system that is similar to python's `matplotlib` and to R's native plotting system. This library will be used to display the various
+plots in the R markdown file.
+
 ```{r message=FALSE, warning=FALSE}
 if (!require(ggplot2, quietly=TRUE)) {
   install.packages("ggplot2")
   library(ggplot2)
 }
+```
+
+`GGally` contains various additions to the `ggplot2` ecosystem. For the purpose of this demonstration, only one function (`ggpairs`) is used.
+
+```{r}
 
 if (!require(GGally, quietly=TRUE)) {
   install.packages("GGally")
@@ -106,6 +114,7 @@ gradDescent <- function(x, y, theta, costFun, costGrad, alpha, maxIter, verbose=
 We will be generating data around the line y = 22x - 35
 
 ```{r}
+# Store the coefficients in a theta vector
 linearTheta <- matrix(c(-35, 22))
 dataSize <- 2000
 # Don't forget that seed
@@ -145,6 +154,7 @@ linearDataRegression
 Pretty close to the true line.
 
 ```{r message=FALSE, warning=FALSE}
+# Add the regression line to the original plot
 linearPlot <- linearPlot +
   geom_abline(aes(colour="black", intercept=linearDataRegression$coefficients[1], slope=linearDataRegression$coefficients[2]), alpha=0.8, size=1) +
   scale_color_identity(labels=c("Regression Line", "True Line"), guide="legend")
@@ -154,6 +164,7 @@ linearPlot
 Let's try using gradient descent. The code is available in the __Some Prep__ section.
 
 ```{r}
+# Start with an arbitrary theta. Gradient descent will lead to the optimum theta.
 initTheta <- matrix(c(1, 2))
 gradResults <- gradDescent(linearX, linearY, initTheta, sumOfSquaresCost, sumOfSquaresGrad, 3E-9, 5000)
 gradResults$theta
@@ -162,6 +173,7 @@ gradResults$theta
 Again pretty close. Plot it as well.
 
 ```{r message=FALSE, warning=FALSE}
+# Add the gradient descent line to the original plot
 linearPlot <- linearPlot +
   geom_abline(aes(colour="red", intercept=gradResults$theta[1], slope=gradResults$theta[2]), alpha=0.8, size=1) +
   scale_color_identity(labels=c("Regression Line", "Real Line", "Gradient Descent"), guide="legend")
@@ -206,27 +218,76 @@ R includes some analysis in the regression model.
 summary(linearDataRegression)
 ```
 
+### What if we didn't know that the data was linear?
+
+We can use the AIC and BIC of fit models to determine how well a model is fit (loosely based on https://www.r-bloggers.com/aic-bic-vs-crossvalidation/)
+
+Iterate through 1 (purely linear) to 10 polynomial degrees.
+
+```{r}
+# Iterate through and perform regression with differen polynomial degrees.
+linearDegreesToExplore <- 10
+linearAICResults <- vector(mode = "numeric", length=linearDegreesToExplore)
+linearBICResults <- vector(mode = "numeric", length=linearDegreesToExplore)
+for (degree in 1:linearDegreesToExplore) {
+  regressionModel <- lm(linearY ~ poly(linearX, degree = degree))
+  linearAICResults[degree] <- AIC(regressionModel)
+  linearBICResults[degree] <- BIC(regressionModel)
+}
+```
+
+
+```{r}
+# Store in a dataframe to plot out
+linearDegreesDF <- data.frame(degrees = 1:linearDegreesToExplore, AICResults = linearAICResults, BICResults = linearBICResults)
+linearDegreesP <- ggplot(linearDegreesDF, aes(x=degrees)) +
+  geom_line(aes(y=AICResults, color="AICResults")) +
+  geom_line(aes(y=BICResults, color="BICResults")) +
+  scale_x_continuous(breaks = 1:linearDegreesToExplore) + 
+  ggtitle("Linear Data: Polynomial Degree vs AIC & BIC") +
+  labs(y="AIC/BIC", x = "Polynomial Degree") +
+  geom_segment(aes(x=1, y=24120, xend=1, yend=24110),
+               arrow = arrow(length = unit(0.3, "cm"),
+                             angle=20, type="closed"))
+linearDegreesP
+```
+
+For well fit models, a lower AIC or BIC is prefered. As the degree increases, both the AIC and the BIC get larger. AIC and BIC penalizes overfitting so the best model was clearly just linear (1 degree).
+
 ## Nonlinear Data Regression
 
 ### Generate some data
 
-This time, we'll generate data points for y = 2x^3^ - x^2^ + 3x - 33
+This time, we'll generate data points for y = 2x^3 - x^2^ + 3x - 33
+
+Let's generate a closure for generating the appropriate y values.
 
 ```{r}
-# First off, let's create a function that will create a function for a particular theta
-genYFunction <- function(t) {
+genYFunction <- function(t, degreesOfPolynomial) {
   genY <- function(x) {
-    return((t[4] * (x ^ 3)) + (t[3] * (x ^ 2)) + (t[2] *  x) - t[1])
+    total <- 0
+    currDegree <- 0
+    total <- 0
+    for (i in 0:degreesOfPolynomial) {
+      currAmount <- t[i + 1]  * (x ^ i)
+      total <- total + currAmount
+    }
+    return(total)
   }
   return(genY)
 }
 
+```
+
+Like before, let's generate some data.
+
+```{r}
 polyTheta <- matrix(c(-33, 3, 1, 2))
 dataSize <- 1000
 # Another. 10 because class starts at 10.
 set.seed(10)
 polyX <- runif(dataSize, min=-20, max=20)
-realFunction <- genYFunction(polyTheta)
+realFunction <- genYFunction(polyTheta, 3)
 polyY <- sapply(polyX, realFunction) + rnorm(length(polyX), mean=32, sd=3000)
 ```
 
@@ -255,7 +316,7 @@ nonlinReg
 ```
 
 ```{r message=FALSE, warning=FALSE}
-polyFitFunction <- genYFunction(nonlinReg$coefficients)
+polyFitFunction <- genYFunction(nonlinReg$coefficients, length(nonlinReg$coefficients) - 1)
 polyP <- polyP +
   stat_function(fun = polyFitFunction, aes(colour = "red")) +
   scale_color_identity(labels=c("True Line", "Poly Regression Line"), guide="legend")
@@ -302,6 +363,92 @@ summary(nonlinReg)
 summary(linReg)
 ```
 
+### What if we didn't know which polynomial degree to use?
+
+Again, we do the AIC and BIC analysis.
+
+```{r}
+# Iterate through and perform regression with differen polynomial degrees.
+polyDegreesToExplore <- 10
+polyAICResults <- vector(mode = "numeric", length=polyDegreesToExplore)
+polyBICResults <- vector(mode = "numeric", length=polyDegreesToExplore)
+for (degree in 1:polyDegreesToExplore) {
+  regressionModel <- lm(polyY ~ poly(polyX, degree = degree))
+  polyAICResults[degree] <- AIC(regressionModel)
+  polyBICResults[degree] <- BIC(regressionModel)
+}
+```
+
+
+```{r}
+# Store in a dataframe to plot out
+polyDegreesDF <- data.frame(degrees = 1:polyDegreesToExplore, AICResults = polyAICResults, BICResults = polyBICResults)
+polyDegreesP <- ggplot(polyDegreesDF, aes(x=degrees)) +
+  geom_line(aes(y=AICResults, color="AICResults")) +
+  geom_line(aes(y=BICResults, color="BICResults")) +
+  scale_x_continuous(breaks = 1:polyDegreesToExplore) + 
+  ggtitle("Polynomial Data: Polynomial Degree vs AIC & BIC") +
+  labs(y="AIC/BIC", x = "Polynomial Degree") +
+  geom_segment(aes(x=3, y=19200, xend=3, yend=19100),
+               arrow = arrow(length = unit(0.3, "cm"),
+                             angle=20, type="closed"))
+polyDegreesP
+```
+
+The data that was generate had three polynomial degrees which aligns with the AIC/BIC graph.
+
+### Bonus Round: Regression on higher degree polynomial data.
+
+Choose a random number between 5 and 10 (inclusive) and that will be how many polynomial degrees will be used to generate the data.
+
+```{r}
+# 85 because that's a 4.0
+set.seed(85)
+hiddenDegree <- sample(6:10, 1)
+# Generate a theta. One extra for the intercept.
+hiddenTheta <- matrix(sample(1:20, hiddenDegree + 1, replace=T))
+# And generate data again
+dataSize <- 1000
+hiddenX <- runif(dataSize, min=-5, max=5)
+hiddenFunction <- genYFunction(hiddenTheta, hiddenDegree )
+hiddenY <- sapply(hiddenX, hiddenFunction) + rnorm(length(hiddenX), mean=1000, sd=10000)
+```
+
+
+```{r}
+# Iterate through and perform regression with differen polynomial degrees.
+hiddenDegreesToExplore <- 10
+hiddenAICResults <- vector(mode = "numeric", length=hiddenDegreesToExplore)
+hiddenBICResults <- vector(mode = "numeric", length=hiddenDegreesToExplore)
+for (degree in 1:hiddenDegreesToExplore) {
+  regressionModel <- lm(hiddenY ~ poly(hiddenX, degree = degree))
+  hiddenAICResults[degree] <- AIC(regressionModel)
+  hiddenBICResults[degree] <- BIC(regressionModel)
+}
+```
+
+Let's visualize the AIC/BIC against the degree of polynomials.
+
+```{r}
+# Store in a dataframe to plot out
+hiddenDegreesDF <- data.frame(degrees = 1:hiddenDegreesToExplore, AICResults = AICResults, BICResults = BICResults)
+hiddenDegreesP <- ggplot(hiddenDegreesDF, aes(x=degrees)) +
+  geom_line(aes(y=AICResults, color="AICResults")) +
+  geom_line(aes(y=BICResults, color="BICResults")) +
+  scale_x_continuous(breaks = 1:hiddenDegreesToExplore) + 
+  ggtitle("Polynomial Degree vs AIC & BIC") +
+  labs(y="AIC/BIC", x = "Polynomial Degree") +
+  geom_segment(aes(x=hiddenDegree, y=24000, xend=hiddenDegree, yend=22500),
+               arrow = arrow(length = unit(0.3, "cm"),
+                             angle=20, type="closed"))
+hiddenDegreesP
+```
+
+```{r}
+hiddenDegree
+```
+
+The data was generated with 8 polynomial degrees which corresponds to the AIC/BIC graph above. 1-7 degrees was not good enough to represent the data. 8-10 though was good enough. Possibly, the difference between 8-10 degrees were miniscule enough to not generate an overfitting.
 
 ## Logistic Regression
 We will be doing logistic regression based on http://michael.hahsler.net/SMU/EMIS7332/R/logistic_regression.html
@@ -453,3 +600,9 @@ f1Score <- function(confusionMatrix) {
 f1Score(trainConfusion)
 f1Score(testConfusion)
 ```
+
+## Conclusion
+
+We went through various metrics to determine how good a model is.
+
+For linear and polynomial regresison we used cost function analysis and AIC and BIC analysis. For logistic we used f1 scores in this exercise. There are more types of analysis that can be explored that is not part of this exercise. What you choose ultimately depends on what the model what type of regression was used.
