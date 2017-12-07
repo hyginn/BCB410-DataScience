@@ -431,7 +431,7 @@ Let's visualize the AIC/BIC against the degree of polynomials.
 
 ```{r}
 # Store in a dataframe to plot out
-hiddenDegreesDF <- data.frame(degrees = 1:hiddenDegreesToExplore, AICResults = AICResults, BICResults = BICResults)
+hiddenDegreesDF <- data.frame(degrees = 1:hiddenDegreesToExplore, AICResults = hiddenAICResults, BICResults = hiddenBICResults)
 hiddenDegreesP <- ggplot(hiddenDegreesDF, aes(x=degrees)) +
   geom_line(aes(y=AICResults, color="AICResults")) +
   geom_line(aes(y=BICResults, color="BICResults")) +
