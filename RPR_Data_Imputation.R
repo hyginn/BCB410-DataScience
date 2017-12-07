@@ -34,7 +34,7 @@
 # 2. Running MICE on a small synthetic data set              Line 163
 # 3. Running MICE on a small subset of the GSE4987 Dataset   Line 234
 # 4. Running Hmisc's aregImpute() on a large GSE4987 subset  Line 298
-# 5. Exercise solutions                                      Line 364
+# 5. Exercise solutions                                      Line 365
 #
 # ==============================================================================
 # Important Note:
@@ -308,6 +308,7 @@ cor(complete_snippet_GSE_data)     #experimented
 exprs(bigset)
 large_GSE_dataset <- exprs(bigset)
 
+# get a summary of our dataset
 summary(large_GSE_dataset)
 
 # Upon examining the summary of the large dataset, we find that there are
@@ -322,8 +323,8 @@ colNames <- (sampleNames(GSE4987)[1:10])
 impute_colNames <- as.formula(c("~", paste(colNames, collapse = '+')))
 large_GSE_dataset_df <- as.data.frame.matrix(large_GSE_dataset)
 
-col_for_xyplot <- sampleNames(GSE4987)[2:10]
-xy_formula <- as.formula(c("~", paste(col_for_xyplot, collapse = '+')))
+# Before we impute, have a look at correlation results with CCA.
+cor(large_GSE_dataset, use = "complete.obs")
 
 # Run Hmisc. This will take some time (30s - 1 min). We will do 5 different
 # iterations, as per our previous examples.
