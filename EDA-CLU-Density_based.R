@@ -86,7 +86,14 @@ abline(h = 0.15, lty = 2) # looks about right, use eps = 0.15
 # provides a much slower version of DBSCAN
 db <- dbscan::dbscan(df, eps = 0.15, minPts = 5)
 
+# Let's look a the raw data first
+plot(df)
+
+# We can clearly see that there are some clusters going on,
+# but does DBSCAN detect these clusters?
+
 # Plot DBSCAN results using the default plot functions
+# We will look at only the points that are clustered together first
 plot(df, col=db$cluster)
 
 # Add the outliers/noise as black circles in the plot
@@ -99,6 +106,7 @@ fviz_cluster(db, data = df, stand = FALSE,
 
 
 # = 3 Yeast data example
+# Head back to the Wiki page for some background for this section.
 
 # = 3.1 load and sort out the data
 load("./data/myGeneFeatures.RData")
@@ -166,13 +174,35 @@ fviz_cluster(db_test1, data = test1_clean,
              geom = c("point"),
              palette = "jco", ggtheme = theme_classic())
 
-# We can look at the regular plot to compare.
-plot(test1_clean[,-3], col=db_test1$cluster)
 
-# Add the outliers as the filled in black circles in the plot to match
-# the fviz_cluster plot
-points(test1_clean[db_test1$cluster==0,-3], pch = 20, col = "black")
+# We don't need to use fvis_cluster to plot our results.
+# We use the regular plotting function. We can even
+# use different shapes for corresponding to the termName
+# for each point.
 
+# First let's give some group ids each unique termName
+test1_clean$termNameID <- cumsum(!duplicated(test1_clean$termName))
+
+# Let's see what it looks like in comparison:
+# The shapes denote which GO term the point is labelled with
+# and the colours correspond to the cluster groups
+plot(test1_clean[,-c(3,4)], col=(db_test1$cluster + 1),
+     pch=seq(max(test1_clean$termNameID))[as.numeric(test1_clean$termNameID)])
+
+# Let's add some legends:
+
+legend("bottomleft", legend = c(unique(test1_clean$termName)),
+       bty="n", lwd=2, cex=1,
+       lty=rep(NA,max(test1_clean$termNameID) + 1),
+       pch=seq(max(test1_clean$termNameID)))
+
+legend("topleft", legend = c(unique(db_test1$cluster)),
+       bty="n", lwd=2, cex=0.5,
+       col=(db_test1$cluster + 1),
+       lty=rep(1,max(unique(db_test1$cluster))))
+
+# Hmm...it doesn't look like we have any patterns here, I think it might
+# be safe to say that DBSCAN is not so good for this.
 
 # For the next section, please enter numbers when typing in values.
 # Error checking is not performed on the inputs so proper inputs are assumed.
@@ -298,5 +328,61 @@ fviz_cluster(db_test_all, data = test_all_clean[,-19], stand = FALSE,
              ellipse = FALSE, show.clust.cent = FALSE,
              geom = c("point"),
              palette = "jco", ggtheme = theme_classic())
+
+# 3.5 Compare with other clustering algorithms
+test_comp_idx <- c(t_col_idxs, go_terms_idx)
+test_comp <- myGeneFeatures[, test_comp_idx]
+#test_all_clean <- na.omit(test_all)
+test_comp_imputed <- mice(test_comp, m=1, maxit = 50, method = "pmm")
+summary(test_comp_imputed)
+test_comp_clean <- complete(test_comp_imputed, 1)
+
+# Figure out best epsilon value
+dbscan::kNNdistplot(test_comp_clean[,-ncol(test_comp_clean)], k = 5)
+abline(h = 0.45, lty = 5)
+
+# Run DBSCAN
+db_test_comp <- dbscan::dbscan(test_comp_clean[,-ncol(test_comp_clean)],
+                              eps = 0.45, minPts = 5)
+
+# Take a look at the GO term distrubution for each cluster table
+table(db_test_comp$cluster, test_comp_clean$termName)
+
+# As you will see when you cluster the entire data set and attempt to plot the clustering,
+# the axes will read Dim 1 (some %) and Dim 2 (some %). These axes are a further PCA
+# reduction of the features. The percent you see displayed next to the dimensions
+# correspond to how much variation is "explained". This is typically pretty
+# difficult for a human to make sense of since we are reducing so many dimensions.
+# You can read more about what happens when you plot using fviz_cluster on results from
+# a DBSCAN of high dimensional data in the "Update" in the comment by user jsb:
+# https://stats.stackexchange.com/a/263497
+fviz_cluster(db_test_comp, data = test_comp_clean[,-ncol(test_comp_clean)],
+             stand = FALSE,
+             ellipse = FALSE, show.clust.cent = FALSE,
+             geom = c("point"),
+             palette = "jco", ggtheme = theme_classic())
+
+
+# If we run the regular plot, we can see 2D plots for each time compared
+# to each other. Play around with different subsets of the data to
+# see the plots more clearly.
+test_comp_clean$termNameID <- cumsum(!duplicated(test_comp_clean$termName))
+num_col <- ncol(test_comp_clean)
+
+plot(test_comp_clean[,-c(num_col-1, num_col)],
+     col=(unique(db_test_comp$cluster) + 1),
+     pch=seq(max(test_comp_clean$termNameID))[as.numeric(test_comp_clean$termNameID)])
+
+# The legends will be too big for the tiny plots, but use this if
+# you do smaller subsets:
+legend("bottomleft", legend = c(unique(test1_clean$termName)),
+       bty="n", lwd=2, cex=1,
+       lty=rep(NA,max(test1_clean$termNameID) + 1),
+       pch=seq(max(test1_clean$termNameID)))
+
+legend("topleft", legend = c(unique(db_test1$cluster)),
+       bty="n", lwd=2, cex=0.5,
+       col=(db_test1$cluster + 1),
+       lty=rep(1,max(unique(db_test1$cluster))))
 
 # That is the end of the unit! Hopefully it was simple enough to follow along.
