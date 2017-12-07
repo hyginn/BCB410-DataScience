@@ -300,4 +300,10 @@ fit$votes # Prints actual vote numbers for each class.
 # with the parameters (such as ntree, nodesize, sampsize, mtry) to see if you can get a larger improvement,
 # or some feature engineering you've learned from other modules!
 
+# Finally, if you end up with a good fitting Random Forest, you can save it as an .RData file, and load it up
+# again later to predict other data. E.g.
+# save(fit, file='demoRF.RData')
+# fit2 <- load('demoRF.RData')
+# predictions5 <- predict(fit2, test)
+
 # [END]
