@@ -144,8 +144,15 @@ for (i in 21:40) {
 }
 synth_data <- data.frame(t(data.frame(synth_data_list)))
 
-# Calculate the Mutual Information distance between each data point
 cat("Clustering on synthetic data...")
+# Use Euclidean to cluster these data
+# To verify our clustering
+readline(prompt="Press <Enter> to show euclidean distance clustering...")
+dE <- dist(synth_data)
+attr(dE, "Labels") <- labels
+plot(hclust(dE))
+
+# Calculate the Mutual Information distance between each data point
 dMI <- cal_dMI(synth_data)
 attr(dMI, "Labels") <- labels
 
