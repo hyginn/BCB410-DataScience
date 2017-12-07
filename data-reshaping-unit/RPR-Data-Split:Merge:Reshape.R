@@ -37,6 +37,8 @@ library(GEOquery)
 
 # Prepare gset and gset2 data frame loaded from GSE3635 and GSE4987.
 # Load GSE3635 series and platform data from GEO
+##[11] referenced from Breeden Lab,Saccharomyces cerevisiae alpha factor cell cycle,public on Jun 01,2006,
+# Retrieved from https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE3635
 gset <- getGEO("GSE3635", GSEMatrix =TRUE, getGPL=FALSE)
 
 if (length(gset) > 1) {
@@ -54,12 +56,15 @@ gset <- GSE3635  #save to
 
 
 # Load GSE4987 series and platform data from GEO
+##[12] 	Pramila T, Breeden LL,Yeast cell cycle,Genes Dev 2006 Aug,
+# Retrieved from https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE4987.
 GSE4987 <- getGEO("GSE4987", GSEMatrix =TRUE, AnnotGPL=TRUE)
 length(GSE4987) # 1
 GSE4987 <- GSE4987[[1]]
 save(GSE4987, file="./data/GSE4987.RData")
 load(file="./data/GSE4987.RData")
 gset2 <- GSE4987
+
 
 ## ================Split==================
 #Whenever you need to divide the data frame into subparts, you need split
@@ -134,6 +139,7 @@ gset2  ## data loading from GSE4987
 # ============ Section 2.2: split-apply-merge analysis
 
 # Download Yeast GOSlim for preparation
+##[13]Downloaded from https://downloads.yeastgenome.org/curation/literature/go_slim_mapping.tab
 url <- "https://downloads.yeastgenome.org/curation/literature/go_slim_mapping.tab"
 download.file(url, destfile = "./data/go_slim_mapping.tab", method = "libcurl")
 scGsl <- read_tsv("./data/go_slim_mapping.tab",
@@ -442,4 +448,9 @@ new.ct <- dcast(new.mt, ID ~ sampleNames) # recover the data.
 #[8]Robert I. Kabacoff, R in Action 2nd Edition,Chapter 5.6 Aggregation and reshaping, Published by May 2015, ISBN 9781617291388
 #[9]Robert I. Kabacoff, R in Action 2nd Edition,Chapter 5.6 Aggregation and reshaping, Published by May 2015, ISBN 9781617291388".
 #[10]Christopher Bare, Pivot tables in R, published by 9th Jan ,2010. Retrieved from https://digitheadslabnotebook.blogspot.ca/2010/01/pivot-tables-in-r.html.
+#[11]Breeden Lab,Saccharomyces cerevisiae alpha factor cell cycle,public on Jun 01,2006,
+# Retrieved from https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE3635
+#[12]Pramila T, Breeden LL,Yeast cell cycle,Genes Dev 2006 Aug,
+# Retrieved from https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE4987.
+#[13]Downloaded from https://downloads.yeastgenome.org/curation/literature/go_slim_mapping.tab
 # [END]
