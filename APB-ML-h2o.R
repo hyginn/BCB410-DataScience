@@ -1,4 +1,4 @@
-# APB-ML-h2o_FINAL.R
+# APB-ML-h2o.R
 #
 # Purpose:  A Bioinformatics Course:
 #              R code accompanying the APB-ML-h2o unit.
