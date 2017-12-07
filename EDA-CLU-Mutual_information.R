@@ -145,7 +145,6 @@ for (i in 21:40) {
 synth_data <- data.frame(t(data.frame(synth_data_list)))
 
 # Calculate the Mutual Information distance between each data point
-# WARN: THIS CAN BE SLOW
 cat("Clustering on synthetic data...")
 dMI <- cal_dMI(synth_data)
 attr(dMI, "Labels") <- labels
@@ -202,5 +201,61 @@ attr(dMI, "Labels") <- row.names(GOTimeData)
 plot(agnes(dMI), which.plots=2)
 readline(prompt="Press <Enter> to show GO Biological Process data diana...(zoom to see details)")
 plot(diana(dMI), which.plots=2)
+
+# = 4 TASK: Try creating synthetic data with several distributions,
+#           and see if MI clustering can classify them correctly
+#           For example:
+#             * Uniform
+#             * Normal
+#             * Geometry
+#             * Poisson
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Solution:
+synth_data_list <- list()
+labels <- list()
+# 10 data points of uniform distribution
+for (i in 1:10) {
+  synth_data_list[[i]] <- sample(1:20, 200, replace=T)
+  labels[[i]] <- "Uniform"
+}
+# 10 data points of normal distribution
+for (i in 11:20) {
+  synth_data_list[[i]] <- as.integer(rnorm(200, mean=10, sd=3))
+  labels[[i]] <- "Normal"
+}
+# 10 data points of poisson distribution
+for (i in 21:30) {
+  synth_data_list[[i]] <- as.integer(rpois(200, lambda=1))
+  labels[[i]] <- "Poisson"
+}
+# 10 data points of geometry distribution
+for (i in 31:40) {
+  synth_data_list[[i]] <- as.integer(rgeom(200, prob=0.4))
+  labels[[i]] <- "Geometry"
+}
+synth_data <- data.frame(t(data.frame(synth_data_list)))
+
+# Calculate the Mutual Information distance between each data point
+dMI <- cal_dMI(synth_data)
+attr(dMI, "Labels") <- labels
+plot(agnes(dMI), which.plots=2)
 
 # [END]
