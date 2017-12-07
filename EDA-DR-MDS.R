@@ -15,7 +15,7 @@
 #           0.4    (Added section 9: Multidimensional Scaling with Biological relevance)
 #           0.5    (Added section 2.2: Nonmetric Multidimensional Scaling)
 #           0.6    (Added section 9: Multidimensional Scaling with Biological relevance)
-#           1      (Updated sections according to feedback received)   
+#           1      (Updated sections according to feedback received)
 #
 #
 #
@@ -57,6 +57,11 @@ if (!require(Biobase, quietly=TRUE)) {
 if (!require(parallel, quietly=TRUE)) {
   biocLite("parallel")
   library(parallel)
+}
+
+if (!require(ggplot2, quietly=TRUE)) {
+  biocLite("ggplot2")
+  library(ggplot2l)
 }
 
 #Load Libraries
@@ -156,7 +161,7 @@ dist_mat
 result <- isoMDS(dist_mat, k=2)
 result
 #isoMDS returns a stress percentage. Therefore, anything below 5 is good or better. i.e less than 5%
-#Notice the value stress of ~0.78. Don't remember how to interpret the result? 
+#Notice the value stress of ~0.78. Don't remember how to interpret the result?
 #Refer to the wiki section "How MDS Works"
 
 
