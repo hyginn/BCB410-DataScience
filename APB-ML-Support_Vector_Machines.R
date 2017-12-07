@@ -3,7 +3,7 @@
 # Purpose:  A Bioinformatics Course:
 #              R code accompanying the APB-ML-Support_Vector_Machines unit.
 #
-# Version:  0.1
+# Version:  0.4
 #
 # Date:     2017  10  11
 # Author:   Hari Sharma (hari.sharma@mail.utoronto.ca)
@@ -12,6 +12,7 @@
 #           0.1    Creation of Task 1 - Brief Intro to SVMs
 #           0.2    Included parts to manipulate yeast expression profile data.
 #           0.3    Completed learning unit.
+#           0.4    Completed revised learning unit.
 
 #
 # TODO:
@@ -50,7 +51,7 @@
 # (indicated by a blue square on our plots).
 
 #Training data points that are linearly seperable.
-# (xCoord, yCoord, bias term)
+# (xCoord, yCoord, bias term) (bias term adopted from source [2] in wiki.)
 point1 <- c(-1, 1, -1)
 point2 <- c(-1, 3, -1)
 point3 <- c(1, 3, -1)
@@ -149,7 +150,8 @@ for (iteration in 1:iterations) {
     i <- i + 1
 
     # This case will occur if our misclassification condition is met.
-    # That is, if Y_i(X_i * w) < 1. In this case, we update our weight vector
+    # That is, if Y_i(X_i * w) < 1 (adopted from source [2] on wiki page).
+    # In this case, we update our weight vector
     # using the gradients of both the regulizer and the loss term.
 
     if ((Y[i] * (X[[i]] %*% W)) < 1) {
@@ -158,7 +160,7 @@ for (iteration in 1:iterations) {
 
       # This case will occur if our misclassification condition is not met.
       # In this case, we update our weight vector using only the gradient
-      # of the regulizer.
+      # of the regulizer (adopted from source [2] on wiki page).
     } else {
       W <- W + lrate * (-2 * (1/iteration) * W)
     }
@@ -185,21 +187,14 @@ plot(pos,
      ylab="Misclassification",
      col="orange")
 
-# This shows that our support vector machine is indeed learning following
-# consequtive iterations. That is, fewer points are being misclassified as
-# the number of iterations increases.
-
 
 # == TASK 1 - MANIPULATING PARAMETERS THEN ANALYZING ERROR RATE ==
 
 # For this task, you are required to re-run section 1.2, but with different
 # parameter values. What happens to the misclassification rate when:
 #
-#     TASK 1.1 - Regularizer term is too high (i.e. the number of iterations is too low)
-#     TASK 1.2 - Regularizer term is too low (i.e. the number of iterations is too high)
-#
-# Note whether the error rate ever reduces to zero, as we observed in section
-# 1.2. That is, do we still observe convergence in these cases?
+#     TASK 1.1 - Regularizer term is too low (i.e. the number of iterations is too low)
+#     TASK 1.2 - Regularizer term is too high (i.e. the number of iterations is too high)
 #
 # Record your findings in your course journal.
 
@@ -237,7 +232,7 @@ myData <- myData[complete.cases(myData),]
 # removed)
 # We will then have 15% of the data for validation, since truth values are known.
 
-set.seed(1000637643) # Replace the seed value with your student no.
+set.seed(123456)
 N <- nrow(myData)
 rowSelection <- sample(1:N, round(N * 0.15))
 validSet <- myData[rowSelection,]
