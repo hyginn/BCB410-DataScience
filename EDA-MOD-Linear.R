@@ -5,14 +5,16 @@
 #
 # Version:  0.1
 #
-# Date:     2017  10  09
+# Date:     2017  12  05
 # Author:   Vicky Lu (vicky.lu@mail.utoronto.ca)
 #
 # Versions:
-#           0.1    Brief Intro to Linear Regression
+#           0.1    Template of Linear Regression
+#           0.2    Initial Version
+#           0.3    Final Version
 
 #
-# TODO:
+# License:  GPL-3  https://www.gnu.org/licenses/gpl-3.0.en.html
 #
 #
 # == DO NOT SIMPLY  source()  THIS FILE! =======================================
@@ -23,366 +25,297 @@
 #
 # ==============================================================================
 
+# We will download ggplot2 that is similar to R's plotting system plot().
+# This library will be used to display the models.
 
-# ====================================================================
-# Part 1: Creating a simple linear model
-# ====================================================================
-
-# Linear models are used to help make future predictions after
-# exploring the relationships between the x and y variables. We
-# are trying to understand the independent variable relative to
-# the dependent variable. The goal at the end of all this is to
-# retrieve the parameters of our synthetic data, which are the
-# slope and the y-intercept.
-
-# We will generate observations that come from measuring age and risk of
-# prevaling diseases as our synthetic sample.
-
-# First, we will create a linear model function so that we could reuse
-# it later on for the next parts.
-
-# The function will take in a sample number, the minimum and maximum
-# of the independent variable x, and a ratio of x to y.
-sampleData <- function(sampleSize, min = 0, max = 75, ratio = 1.5) {
-
-  # We will create a seed for the random generator to help generate
-  # random x values
-  set.seed(123)
-
-  # Generate random uniformed x values in the interval (min, max)
-  x <- runif(sampleSize, min, max)
-
-  # We will generate hypothetical y values according to a simple linear
-  # equation.
-  y <- ratio * x + 1
-
-  # Add errors/noise to the y values to play around by adding normalized
-  # value with a mean and standard deviation
-  y <- y + rnorm(sampleSize, mean = 0, sd = 15)
-  # y <- y + rnorm(sampleSize, 0, 99)
-
-  # Here we create the matrix of n rows and two variables our x and y
-  dataDf <- data.frame(x=x, y=y)
-
-  return(dataDf)
+if (!require(ggplot2, quietly=TRUE)) {
+  install.packages("ggplot2")
+  library(ggplot2)
 }
 
-# Create your synthetic model with a sample size of 50
-synthmod <- sampleData(50)
-# Plot your model
-plot(synthmod, xlab="Age", ylab="Risk of Prevalent Diseases")
-title("Synthetic Data")
-
-# Now you know how to create a linear model
-
-# Go back to wiki to continue your reading on the coefficient of correlation...
-# http://steipe.biochemistry.utoronto.ca/abc/students/index.php/EDA-MOD-Linear#Coefficient_of_Correlation
-
-# ===================================================================
-# Part 2: Coefficient of Correlation
-# ===================================================================
-
-# It takes the x and y coordinates and tells us whether our distributed linear
-# model is applicable to analyze our dataset.
-
-# To continue with our model, calculate the correlation
-cor(synthmod$x, synthmod$y)
-
-# What does this number mean?...
-
-# Looks like the older you get the more risk of having prevalent diseases...
-# The two variables may correlate with each other and could be used in analyzing
-# future predictions.
-
-# Let's look at the correlation again when you add even more noise to the output.
-# Go back to the function and change the y variable rnorm to rnorm(sampleSize, 0, 99)
-# and run the function again.
-
-# We could see that random noise adds error and that the model now would not be
-# a good model to analyze our dataset.
-
-# Let's observe the coefficient on a new linear line graph and see what happens
-# when you add noise to it.
-
-# note x and y lengths cannot differ
-x <- rnorm(50)
-r <- 0.99 # 1% noise
-y <- (r * x) + ((1-r) * rnorm(50))
-plot(x, y)
-cor(x, y)
-
-# Here we have a graph where the x and y values are 99% identical and 1% random noise
-# ...try 20% , 40%, 60%, 99% noise.. and observe how the correlation changes
-
-# How would the coefficient of correlation be affected?
-# How would the model look like when noise is added?
-
-# Continue from the wiki page and read about
-# Analyzation and Interpretation of Linear Regression in R
+# We will also download this library gridExtra to perform grids on
+# models.
+library(gridExtra)
 
 
-# ==========================================================================
-# Part 3: Analyze Linear Regression
-# ==========================================================================
+# ====================================================================
+# Part 1: Simple Linear Regression
+# ====================================================================
 
-# Our goal is to retrieve our parameters that informed our model to begin with.
+# Linear regression is used to see if the values in the response variable y
+# can be predicted to change systematically with the predictor variable x.
+# The simple linear regression model is in the form Y = B_0 + B_1 X_i + e
+# where Y is the response variable, B_0 is the intercept, B_1 is the slope
+# coefficient, and e is the error term in wchich every observed value has
+# around the predicted regression line.
 
-# Replot our synthetic data
-plot(synthmod, xlab="Age", ylab="Risk of Prevalent Diseases")
+sampleSize <- 50
+set.seed(123)
+# Generate random uniformed x values in the interval (min, max)
+x <- runif(sampleSize, min=0, max=75)
 
-# R has a linear model function that describes the model
+# Generate hypothetical y values according to a simple linear equation
+y <- 1.5 * x + 1
+# Add errors to the y value by adding normalized value with a mean and standard deviation
+y <- y + rnorm(sampleSize, mean=10, sd=15)
+
+# Let's see the generated data.
+# Store in a data frame so we can plot it
+dataDf <- data.frame(x=x, y=y)
+
+linearPlot <- ggplot(dataDf, aes(x, y)) +
+  geom_point(colour="dodgerblue",alpha=0.75) +
+  geom_point(aes(x=x, y=y), size=2, colour="#993399") +
+  xlab("speed (mph)") + ylab("distance(ft)") +
+  ggtitle("Synthetic Data (Linear Data)")
+print(linearPlot)
+
+
+# Just by looking at the plot, do you think there is a relationship between
+# these variables?
+# ...
+# Yes there seems to be some sort of increase in the Y variables as X increases
+# As a whole the data kind of point upwards
+
+# R has a linear model function that constructs the linear model
 # Save it to a variable so that we could use in subsequent calculations
-# without having to retyle the entire lm() function.
-synthregressionline <- lm(synthmod[,2] ~ synthmod[,1])
-# You could look at whether the parameters are close to what we have at the
-# beginning by displaying the linear model
-synthregressionline
+# without having to retype the entire lm() function.
+fit1<- lm(y~x)
+fit1
+# Let's plot our regression line in our model
+
+linearPlot + geom_abline(intercept=coef(fit1)[1], slope=coef(fit1)[2], size=1, colour = "#339900")
+
+save(linearPlot, file = "/tmp/simple.rda")
+
+
+# In R, the X in the summary of coefficients is the slope.
+# Here you see the intercept (B_0) is 8.865 and the slope (we call it B_1) is 1.576
+# You could see that for each increment of X there is almost a corresponding
+# increase in Y.
+# The regression line describes the global trend in the data pretty well
+# Is this significant?
+# We want to first check if the assumptions are satisfied.
+
+# ==========
+# Part 1.1 Checking Assumptions
+# ===========
+
+# To observe linearity let's plot residuals vs. predictor
+# Grabbing the residuals to res
+res <- resid(lm(fit1))
+res
+
+# Now let's plot the residuals and predictor to help examine whether the
+# linear model is appropriate or not
+plot(res~x)
+cor(res,x) # -3.405849e-16
+# The residuals are not correlated with the predicted values, therefore it is homoscedastic.
+# It looks like it is scattered randomly. We could say that it is appropriate.
+
+# Let's observe multivariate normality.
+# R provides a series of four plots to look at when you plot a variable
+# specified by lm().
+# Using this command plot(model name)
+par(mfrow = c(1,2))
+plot(fit1, which=c(1,2))
 
-# So the intercept and the slope characterizes the regression line.
-# You have retrieved the complete regression equation since you have the parameters
-# What does the equation tell you?
-# ...
+# The first plot is Residuals vs Fitted. It is randomly scattered and therefore it is
+# not heteroscedastic.
+# If it was a U shape then there is curvilinear shape and linearity is not met
+# If it has a cone shape, then constant variance of the regression analysis is not met
+# Here it shows that the residuals are distributed evenly around the 0.
 
-# Let's plot our regression line in our model with a function provided by R.
-abline(synthregressionline, col="firebrick", lwd=3)
-# ...
-# The predicted risk of having prevalent disease will increase by the observed
-# slope for every time you age. We could simply observe what the y variable
-# is on the regression line given the x variable.
+# The second plot is Normal Q-Q (standardized residuals vs theoretical qunatiles lm(y~x))
+# It is used to check for normality of the residuals. It shows that the residuals are
+# the values of a normal distribution, therefore it is normally distributed.
+# It may not be necessary to improve the regression model.
 
-# It represents the change of y when x changes.
+# We could reproduce the first:
+lo2 <- loess(resid(fit1) ~ fitted(fit1), degree = 1, span=0.8)
+plot(fitted(fit1), resid(fit1))
+lines(fitted(fit1), predict(lo2), col='red', lwd=2)
+abline(a=0, b=0, lty=2)
 
-# Can look at the summary of the linear regression
-summary(synthregressionline)
+# Overall, it shows that it is a good fit.
 
 
+# ==============
+# Part 1.2 Analyze and Interpret Simple Linear Regression
+# ==============
 
-# === Part 3.1: Residuals and Fitted values ====
+# We good take a look at the correlation of our data points.
+cor(x,y) # 0.92
+# Wow it seems like the two variables have a high correlation with each other.
+# We could come up with an equation for our model.
+# What is our line of best fit equation?
+
+# To see in more details there is a function that we could use called summary
+summary(fit1)
+
+# The intercept (B_0) is 8.8647 and the slope (we call it B_1) is 1.5763
+# Therefore, our line of best fit equation that determines our model is
+# y = 8.8647 + 1.5763x
+
+# The summary here shows the coefficient of determination is 0.8615. The two variables
+# are approximately 86% associated and that we could correctly predict the y value given
+# the x value.
+
+# The F-statistic shows a p-value of 2.2e-16 which is less than 0.05. This means
+# that the model using the predictors did a good job of predicting
+# the outcome variable and that there is a signficiant relationship between
+# the set of predictors and the dependent variable.
+
+# Overall it seems like the regression line is significant.
+
+
+
+# ===================================================================
+# Part 2: Data Transformation
+# ===================================================================
+# Source(http://sia.webpopix.org/polynomialRegression1.html by March Lavielle)
+
+# If you come across a model such as the example data below
+# that violates the assumption of being homoscedasticty, you may want
+# to do a data transformation.
 
+sampleSize <- 50
+set.seed(123)
+x2 <- seq(sampleSize)
+y2<- rnorm(sampleSize, 25 + 14*x2^(-0.2), 1)
+dataDf <- data.frame(x=x2, y=y2)
+linearPlot2 <- ggplot(dataDf, aes(x, y)) +
+  geom_point(colour="dodgerblue",alpha=0.75) +
+  geom_point(aes(x=x, y=y), size=2, colour="#993399") +
+  xlab("speed (mph)") + ylab("distance(ft)") +
+  ggtitle("Synthetic Data (Linear Data)")
+print(linearPlot2)
+fit2 <- lm(y2~x2)
+linearPlot2 + geom_abline(intercept=coef(fit2)[1], slope=coef(fit2)[2], size=1, colour = "#339900")
+plot(fit2,which=c(1))
 
-# Plotting residuals to help examine whether the linear model is
-# appropriate or not
-res <- resid(lm(synthregressionline))
+# Here in this Residuals vs Fitted plot, you see this U shape, therefore linearity is
+# not met.
+
+# We will do a log 10 based transformation
+# we will continue using the data points from above.
 
-# Plotting idealized values to help examine how well the model would predict
-# the y-value given x values in the data set.
-fit <- fitted(synthregressionline)
+plot1 <- linearPlot2 + scale_x_log10()
+plot2 <- linearPlot2 + scale_y_log10()
+grid.arrange(plot1, plot2, nrow=1)
 
+# If it still doesn't show much of a linear trend.
+# Try log-log transformation.
 
-# Plot differences between the points to the line of best fit
-segments(synthmod[,1], synthmod[,2], synthmod[,1], fit, col="#AA000044")
+print(linearPlot2 + scale_x_log10() + scale_y_log10() )
+
+# This looks much better!
 
-# Ploting residuals and fitted graph is to help analyze or detect any non-linearity
-plot (fit, res)
-cor(fit, res)
+fit2.log <- lm(log(y2) ~ log(x2))
+summary(fit2.log)
+# The model now explains %73 of the (transformed) data.
 
-# What do you see? Patterns?
-# What does the pattern mean?...
-# Is the moddle adequate for your dataset?
 
 
-# === Part 3:2: Prediction and Confidence Limits ===
 
 
-# Prediction limits describe how good the model is in taking new data and sets
-# boundaries on future observations.
 
-# Confidence limits tell us how accurate our mean is given the noise and data.
-# How confidence is the parameters in describing our data.
+# =====================================================================
+# Part 3: Multiple Linear Regression
+# =====================================================================
+# Let's look at multiple variates.
 
-# To calculate the prediction and confidence limits, it would be wise to sort
-# them on x values, then plotting the lines to give a linear line.
+# There could be other factors predictor variables that could explain
+# the response variable
+# Multiple Regression has a linear model with the form
+# y_i = B_0 + B_1X_1 + B_2X_2 + ... + B_kX_k + e_l
+# where there is k different predictor variables, each of which contributing
+# to the observed value in y.
 
-# Sort x values in order
-o <- order(synthmod[,1])
-newsynthmod <- synthmod[o,]
+testMarks <- c(4, 30, 15, 80, 75, 85, 55, 58, 63, 72)
+studyHours <- 1:10
+noiseLevel <- c(100, 80, 85, 20, 25, 15, 50, 50, 30, 90)
+plot(testMarks~studyHours, xlab="Studying time (hrs)", ylab="Test mark (%)",
+     bty="n", col="red", pch=19,ylim=c(0,100), xlim=c(0,15))
+plot(testMarks~noiseLevel, xlab="Noise Level (%)", ylab="Test mark (%)",
+     bty="n", col="red", pch=19,ylim=c(0,100), xlim=c(0,100))
+cbind(testMarks, studyHours, noiseLevel)
 
-# Compute prediction and confidence values in sorted order
-climit<-predict(lm(newsynthmod[,2] ~ newsynthmod[,1]), int="c")
-plimit<-predict(lm(newsynthmod[,2] ~ newsynthmod[,1]), int="p")
+# Creating our linear model using the notation lm(Y~X1+X2)
+fit3 <- lm(testMarks ~ studyHours + noiseLevel)
+summary(fit3)
 
-# prints out the fitted line with the upper and lower bounds
-head(climit)
-head(plimit)
+# Here we see an R squared of 0.8139, which says approximately
+# 81% of variation in test marks can be explained by our model (study hours and noise level)
+# It says that each correlation coefficient gives a measure that describes
+# the association between the two variables say study hours and testmarks
+# without taking into account other predictors.
 
-# Plot the limits
-plot(newsynthmod, xlab="Age", ylab="Risk of Prevalent Diseases", ylim=range(newsynthmod[,2], plimit))
-matlines(newsynthmod[,1], climit, lty=c(1,2,2), col="slategrey")
-matlines(newsynthmod[,1], plimit, lty=c(1,3,3), col="firebrick")
+# The F-statistic shows that it is 15.31 and p value of 0.002779.
+# This tests the null hypothesis that all model coefficients, study hours, and noise level
+# are 0.
+# The residual standard error is 13.73. This shows how much the test marks deviate from the
+# predicted or fitted test marks.
+# The intercept of 62.5067 is the estimated mean Y value when all Xs are 0. That means
+# this is the estimated mean test mark for someone with study hours and noise level of 0.
+# This doesn't seem meaningful at all realistically.
+# Let's try centering study hours and noise level.
 
-# How does it look? How good is the model?
-# Do you see any outliers?
 
+# We see that the slope for study hours is 4.1397 which is the effect of study hours on
+# our test marks adjusting or controlling for noise level. We associate an increase of
+# one hour of studying time with an increase of 4.1397 in our marks on the test adjusting
+# or controlling noise level.
+# Same reasoning for the noise level.
 
 
+# We want to calculate Pearson's correlation between study hours and noise level.
+cor(studyHours, noiseLevel, method="pearson")
+# The collinearity between study hours and noise elvel means that we should not directly
+# interpet the slope, as the effect of its feature on test marks adjusting the other feature.
 
+# The correlation is very low suggesting that the two predictors are not bounded together.
 
-# Back to the wiki page.
 
+# Create the confidence intervals for the model coeifficients
+confint(fit3, conf.level=0.95)
+# Estimated slope of studyHours is 4.1 , we're 95% cofnfident the true slope is between
+# 0.38 and 7.89.
 
+plot(fit3)
+# In the residuals vs fitted plot, it looks like the relationship between study hours, noise level
+# and test marks is not linear.
 
 
+# ============
+# Part 3.1 Checking Assumptions
+# =============
 
-# ==============================================================================
-# Part 4: Applying to Biological Datasets
-# ==============================================================================
+# Let's plot a scatterplot for studyhours and testmarks
+plot(studyHours, testMarks)
+model1 <- lm(testMarks ~ studyHours)
+summary(model1)
+abline(model1)
+# regression line is the predicted or fitted y value or a mean of y given x
+# In our summary we see that our size error is 22.66.
 
-# We want to test correlation with growth rate to see which genes have significant
-# expression profile of a linear response to growth.
 
-# === Task 1: Calculate the correlation of E.coli control
-# of the cell cycle of Saccharomyces cerevisiae and plot the variables
-# ===
-
-load("../BCB410-DataScience-master/data/GSE3635.RData")
-info <- as.data.frame(GSE3635)
-ecoli <- as.data.frame(info$E..coli.control) # extract the data into matrix
-ecoli <- as.vector(as.matrix(ecoli))
-time <- seq(0,120, by = 10)
-dataDf <- data.frame(x=time, y=ecoli)
-plot(dataDf, xlab="time (min)", ylab="E.coli control", main="Cell growth of GSE3635 with E.coli control")
-cor(time, ecoli)
-abline(lm(ecoli ~ time))
-
-# What is the correlation of coefficient?
-# What does it mean?
-
-# ...
-# The correlation of coefficient is -0.3957835
-# E.coli control shows a negative linear response to growth as time increases..
-
-summary(lm(ecoli ~ time))
-# The p-value and the r-squared value is close 0, this may suggest that
-# the points may not associate with another and that this model
-# does not fit well with the dataset therefore we cannot observe
-# any future predictions.
-
-
-# === Task 2: Plot a regression model with confidence and prediction intervals
-# of E.coli control and Human control of the cell cycle of Saccharomyces cerevisiae
-# expression enrichment values. Do they coregulate?
-# Determine a linear regression model equation to represent this data.
-# Collect the info in your Journal and analyze.
-# Go through the questions under the "Analyzation and Interpretation"
-# section of the wiki.
-# ===
+plot(model1, which=c(1))
+# it shows a hat indicating that it is violating the linearity assumption.
+# There is curviture.
 
-load("../BCB410-DataScience-master/data/GSE3635.RData")
-s <- as.data.frame(GSE3635)
-x <- as.data.frame(s$E..coli.control)
-y <- as.data.frame(s$Human.Control)
-x <- as.vector(as.matrix(x))
-y <- as.vector(as.matrix(y))
-cor(x, y)
-M <- data.frame(x=x, y=y)
-plot(M)
-rl <- lm(M$y ~ M$x)
-abline(rl, col="red")
-
-o <- order(M$x)
-newM <- M[o,]
+# Let's look at noise levels and test marks
+plot(noiseLevel, testMarks)
+model2 <- lm(noiseLevel ~ studyHours)
+summary(model2)
 
-climit<-predict(lm(newM$y ~ newM$x), int="c")
-plimit<-predict(lm(newM$y ~ newM$x), int="p")
+plot(model1, which=c(1))
 
-head(plimit)
-head(climit)
+###########################################################
 
-plot(newM, xlab="E.coli ctrl", ylab="Human ctrl", ylim=range(newM[,2], plimit))
-matlines(newM$x, climit, lty=c(0,2,2), col="slategrey")
-matlines(newM$x, plimit, lty=c(1,3,3), col="firebrick")
 
-summary(rl)
-# The linear regression equation is Human ctrl = 0.57885 * E.coli ctrl + 0.06
-# The correlation of coefficient is 0.834122 and squaring this would give us
-# a value of approximately 0.6681. This suggests that approx 66% of the variation
-# in Human ctrl is explained by the Ecoli ctrl variable.
-# It looks like these two variables show common expression in the cell cycle...
-# and is somewhat of a good fit.
-# The summary shows a low p-value which indicates that changes in the predictors
-# are related to changes in the response variable.
 
 
-# === Task 3: ===
-
-# Find genes that have a significant trend that shows response.
-# Find genes who have expression that increases with time where expression is
-# greater in each of the time points
-# Figure out if linear model works with each gene dataset.
-# Which genes are the most simliar in their response?
-# Which genes are most highly correlated?
-# Again, collect the info in your Journal and analyze.
-# Go through the questions under the "Analyzation and Interpretation"
-# section of the wiki as you are working through this task.
-
-# ================
-
-
-
-
-
-# === Sample Solution to Task 3 ===
-
-# We will start with the response to osmotic stress gene, YOL116W, in myGoExSet
-
-load("../BCB410-DataScience-master/data/myGOExSet.rData")
-# we will grab the expression values of YOL116W time scale at column 5 to 17
-gene <- (myGOExSet[257, 5:17])
-gene <- as.vector(as.matrix(gene))
-x <- seq(0,120, by = 10)
-d <- data.frame(x=x, y=gene)
-plot(d)
-cor(x, gene)
-abline(lm(gene~x))
-
-# looks like we have an increase growth expression as time increase
-# Correlation is 0.698
-# but how sure are we?
-summary(lm(gene~x))
-
-o <- order(x)
-new <- d[o,]
-
-c<-predict(lm(new[,2] ~ new[,1]), int="c")
-p<-predict(lm(new[,2] ~ new[,1]), int="p")
-
-plot(new, xlab="time (min)", ylab="gene", ylim=range(new[,2], p))
-
-matlines(new[,1], c, lty=c(0,2,2), col="slategrey")
-matlines(new[,1], p, lty=c(1,3,3), col="firebrick")
-
-#...
-# all points are within the boundaries
-# Summary shows that there is a relationship between the two variables
-# however r-squared value says that 48% of the expression values is explained
-# by the time variables.
-
-
-
-# use the geneGrowth function to continue observing the rest of the genes
-source("EDA-MOD-Linear_functions.R")
-geneGrowth(152)
-# Housekeeping gene at 152 has a negative correlation
-
-
-# check if two genes one from DNA replication and one from cell budding, correlate, are they similar?
-YDR489W <- (myGOExSet[41, 5:17])
-YDR489W <- as.vector(as.matrix(YDR489W))
-YBR109C <- (myGOExSet[139, 5:17])
-YBR109C <- as.vector(as.matrix(YBR109C))
-d <- data.frame(x=YDR489W, y=YBR109C)
-plot(d, xlab="YDR489W", ylab="YBR109C")
-cor(d$x, d$y)
-abline(lm(d$y ~ d$x))
-
-# These two genes have a negative correlation.
-summary(lm(d$y ~ d$x))
-# ...
-
-
-
-
-# Maybe another statistical model is more suitable for this dataset...
-
-
+#
 # [END]
+
