@@ -5,7 +5,7 @@
 #
 # Version:  0.4
 #
-# Date:     2017  12  05
+# Date:     2017  12  06
 # Author:   Truman Wang (truman.wang@mail.utoronto.ca)
 #
 # Versions:
@@ -317,6 +317,6 @@ eval_model <- evaluate_Weka_classifier(model, newdata=Pima.te)
 # From eval_model we can see that it correctly classified 190/233 out all "no" patients,
 # which is roughly an accuracy of 81.5%. However it only correctly classifier 53/109 out of
 # all "yes" patients, which is only an accuracy of 48.6%. The reason the results still look quite
-# decet at 73.2% is because there are so many more "no" instances compared to "instances"
+# decent at 73.2% is because there are so many more "no" instances compared to "instances"
 
 #[END]
