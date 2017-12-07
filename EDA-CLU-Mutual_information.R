@@ -149,6 +149,7 @@ synth_data <- data.frame(t(data.frame(synth_data_list)))
 cat("Clustering on synthetic data...")
 dMI <- cal_dMI(synth_data)
 attr(dMI, "Labels") <- labels
+
 # Does hclust, agnes, diana 3 types of hierarchy based clustering
 # Note: Here readline() is to prompt user for input
 #     So we display plots one by one
@@ -186,7 +187,7 @@ plot(diana(dMI), which.plots=2)
 
 # GO BP Terms data (After dimensional reduction)
 # Since GO data is only floating points, we need to multiply it to enlarge the data then round it to integer for our MI calculation
-GOBPData <- myGeneFeatures[18:22] * 10
+GOBPData <- myGeneFeatures[18:22] * 5
 
 # Calculate the Mutual Information distance between each data point
 # WARN: THIS CAN TAKE SOME TIME
