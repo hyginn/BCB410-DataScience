@@ -21,6 +21,7 @@
 # 7. Perform clustering on the data
 # 8. Observe results of clustering
 # 9. Plot the data for visualization
+# 10. Revisiting our methods and thinking of alternatives
 
 # =    1. Install packages  =========================================================================
 
@@ -39,13 +40,30 @@ if (!require(factoextra, quietly = TRUE)) {
   install.packages("factoextra")
   library(factoextra)
 }
-
+# we will be using a data imputation function from the mix package
+# to deal with NA values in our gene expression data set
+if (!require(mix, quietly = TRUE)) {
+  install.packages("mix")
+  library(mix)
+}
+# we will use 3dplot as an alternative plotting tool
+if (!require(rgl, quietly = TRUE)) {
+  install.packages("rgl")
+  library(rgl)
+}
 # =    2. Generate synthetic data  ==================================================================
+
+set.seed(100)
 
 # we will first start by confirming our clustering algorithm functions properly
 # by using it on synthetic data and comparing its results with the synthetic data clusters
 
-# generate 100 2D data points that are grouped into one of 2 classes (clusters)
+# the function mlbench.2dnormals(n, cl=2, r=sqrt(cl), sd=1) generates n normally distributed
+# 2D data points. The parameter cl refers to the number of classes (or clusters)
+# in the data set. More information on the parameters can be found here:
+# https://www.rdocumentation.org/packages/mlbench/versions/2.1-1/topics/mlbench.2dnormals
+
+# we will use mlbench.2dnormals to generate 100 2D data points that are grouped into one of 2 classes (clusters)
 synthetic_data <- mlbench.2dnormals(100,2)
 # synthetic_data$x is a matrix that shows the data points that were generated
 head(synthetic_data$x)
@@ -59,17 +77,22 @@ plot(synthetic_data)
 
 # =    3. Perform clustering on synthetic data ======================================================
 
+# Now that we have the generated data points and their associated cluster assignments,
+# let's use the Mclust function to apply distribution-based clustering on the data points.
+# Then we can compare how effective our Mclust function is at clustering by comparing its
+# clustering assignment results with the clustering assignments from mlbench.2dnormals
+
 # model-based-clustering using the Mclust function
 # type ?Mclust for more details about the function outputs
 clustered_synthetic_data <- Mclust(synthetic_data$x)
 
 # =    4. Compare clustering results with synthetic data clusters ===================================
 
-# print a summary
-summary(clustered_synthetic_data)
+# After we pass our model through the Mclust function, let's take a look at the results
 
-# mc$G shows the optimal number of clusters
+# the $G attribute shows the number of clusters that Mclust decided was optimal for the data set
 clustered_synthetic_data$G
+# result is 2, which is the same as ml2bench.2dnormals; so far so good
 
 # plot the points with the cluster groupings
 plot(clustered_synthetic_data,"classification")
@@ -80,14 +103,22 @@ plot(clustered_synthetic_data,"classification")
 plot(synthetic_data)
 # Mclust clusters
 plot(clustered_synthetic_data,"classification")
-# the clustering groupings should look similar!
+# the cluster groupings look pretty similar!
 
-# to look into more detail, you can also check the cluster assignments for each individual data point
+# to look into more detail, we can also check the cluster assignments for each individual data point
 # synthetic cluster assignments
 synthetic_data$classes
 # Mclust cluster assignments
 clustered_synthetic_data$classification
-# there should be some similarity between the two vectors!
+# The two vectors are quite similar!
+
+# To quantify this similarity, we can see what percentage of data points have the same assignments
+# between the two vectors.
+# We make a logical vector that contains a TRUE value for each data point that has
+# the same clustering assignment in both vectors, and FALSE otherwise.
+# We then sum up the TRUE values and divide by 100 (since we have a total of 100 data points)
+sum(synthetic_data$classes == clustered_synthetic_data$classification)/100
+# 92% similarity...not bad!
 
 # keep in mind, the cluster number is arbitrary, so there may be cases where the synthetic clustering
 # assigned a cluster as "1", but the Mclust cluster assignment assigned that same cluster as "2"
@@ -115,7 +146,7 @@ head(myGOExSet,3)
 
 # =    6. Clean the data  ===========================================================================
 
-# exclude character columns; only numeric columns denoting time remains
+# exclude character columns; only keep the numeric columns denoting time points
 df <- myGOExSet[,-1:-4]
 head(df)
 # we need to resolve any NA values, since Mclust will raise an error if we have any NA values
@@ -132,9 +163,6 @@ mc <- Mclust(df_no_na)
 
 # =    8. Observe results of clustering =============================================================
 
-# print a summary
-summary(mc)
-
 # mc$G shows the optimal number of clusters
 mc$G
 
@@ -142,12 +170,85 @@ mc$G
 head(mc$z,30)
 # mc$classification shows the cluster assignement of each gene
 head(mc$classification,30)
-# mc$uncertainty shows the uncertainty associated with each classification
-head(mc$uncertainty,30)
 
 # =    9. Plot the data for visualization ===========================================================
 
-# plot the data; each data point is color-coded to show which cluster it belongs to
-fviz_mclust(mc,"classification",geom="point",pointsize=1.5,palette="jco")
-# plot the data; the larger the data point on the plot, the higher the uncertainty
-fviz_mclust(mc,"uncertainty",palette="jco")
+# Since we are clustering all points in a time-series data set,
+# each time point is treated as its own dimension.
+# Therefore with 13 different time points, we are working with 13-dimensional data.
+# We can confirm this by typing mc$d which tells us how many dimensions we are working with
+mc$d
+
+# Unfortunately, there isn't one good and effective way to visualize high dimensional data
+# On a 2d plot, we can try to plot on only two dimensions and see how they cluster
+fviz_cluster(mc,axes=c(1,2),pointsize=1.0,labelsize=0)
+# Each data point is color-coded to show which cluster it belongs to
+
+# we can manipulate which dimensions to show with axes parameter; it takes a vector of length 2
+# c(1,2) shows dimensions 1 and 2 on the plot
+# lets take a look dimensions 3 and 4
+fviz_cluster(mc,axes=c(3,4),pointsize=1.0,labelsize=0)
+
+# still, even with this, it is quite hard to visualize our data
+
+# Another alternative is to plot in 3 dimensions, with each dimension being one cluster group.
+# We are fortunate (this time) to have our data be clustered into only 3 groups.
+# By plotting in this way, data points that are more likely to belong to a certain cluster,
+# will be represented by how far along they are on the axis of that cluster group
+
+mc$z
+# a reminder that the $z attribute is a matrix showing the probability of
+# each gene belonging to a particular cluster
+
+# now plot it in 3D
+plot3d(mc$z)
+# seems that very few genes belong to cluster 3
+# this can be confirmed by trying:
+length(which(mc$classification == 3))
+# only 8 out of the 281 genes are clustered into group 3
+
+# it seems our Mclust function may not be performing so well...
+# or perhaps it's due to the data itself?
+
+# =    10. Revisiting our methods and thinking of alternatives ===========================================================
+
+# Let's look at our cluster assignments again
+mc$classification
+
+# data points belonging to the same cluster may have some kind of meaning in context
+# to the data set we are working with.
+# Perhaps having similar gene expression profiles (with regards to the time-series) may help
+# elucidate their function.
+# Although it is very difficult to draw conclusions, seeing as we're working with so many dimensions.
+# It may be better to try clustering only between two time points, rather than 12
+
+# remove all other time points except the first two columns
+two_dimensional_data <- df_no_na[,-3:-13]
+
+# cluster
+mc_tdd <- Mclust(two_dimensional_data)
+
+# sanity check, to make sure we only have two dimensions
+mc_tdd$d
+
+mc_tdd$G
+# 3 clusters generated again...hm...
+
+# let's look at the classifications
+mc_tdd$classification
+
+# and plot
+plot(mc_tdd, "classification")
+
+# Whether this plot has more "meaning" than the previous one, is hard to say,
+# However, the context is easier to interpret:
+# genes that are clustered in the same group, must have similar gene expression profiles
+# between the two dimensions we had in our data, i.e. the time points t0 and t10.
+
+# Arguably, this result is easier to interpret as well as being easier to make inferences
+# to potential applications of this result.
+# Although, if we wanted to be thorough, we would have to cluster each pair of dimensions
+# (t0 with everything, t1 with everything, ..., t120 with everything) which would take a
+# lot of time.
+
+# But this result, I believe, is more substantial and the time invested will be worthwhile
